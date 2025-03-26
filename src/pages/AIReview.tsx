@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useTaxOrganizer } from '../context/TaxOrganizerContext';
 import Layout from '../components/layout/Layout';
 import AnimatedCard from '../components/ui/AnimatedCard';
-import { Check, X, Edit2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Check, X, Edit2, ChevronLeft, ChevronRight, Save } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
@@ -50,6 +50,16 @@ const AIReview: React.FC = () => {
       }
     });
     setEditingField(null);
+    
+    toast({
+      title: "Field Updated",
+      description: "The field has been successfully updated",
+      variant: "success",
+    });
+  };
+  
+  const cancelEdit = () => {
+    setEditingField(null);
   };
   
   const verifyAll = () => {
@@ -66,7 +76,7 @@ const AIReview: React.FC = () => {
     toast({
       title: "All fields verified",
       description: "All extracted information has been verified",
-      variant: "default"
+      variant: "success"
     });
   };
   
@@ -196,12 +206,22 @@ const AIReview: React.FC = () => {
                           className="border rounded-md px-2 py-1 text-sm w-full max-w-xs"
                           autoFocus
                         />
-                        <button
-                          onClick={() => saveEdit(field.id)}
-                          className="ml-2 bg-tax-green text-white p-1 rounded-md"
-                        >
-                          <Check size={16} />
-                        </button>
+                        <div className="flex gap-2 ml-2">
+                          <button
+                            onClick={() => saveEdit(field.id)}
+                            className="bg-tax-green text-white p-1 rounded-md hover:bg-green-600 transition-colors"
+                            title="Save"
+                          >
+                            <Save size={16} />
+                          </button>
+                          <button
+                            onClick={cancelEdit}
+                            className="bg-gray-300 text-gray-700 p-1 rounded-md hover:bg-gray-400 transition-colors"
+                            title="Cancel"
+                          >
+                            <X size={16} />
+                          </button>
+                        </div>
                       </div>
                     ) : (
                       <p className="text-lg">{field.value}</p>
@@ -217,6 +237,7 @@ const AIReview: React.FC = () => {
                             ? 'bg-tax-green text-white' 
                             : 'bg-gray-100 text-gray-400 hover:bg-gray-200'
                         }`}
+                        title="Correct"
                       >
                         <Check size={16} />
                       </button>
@@ -228,6 +249,7 @@ const AIReview: React.FC = () => {
                             ? 'bg-tax-blue text-white' 
                             : 'bg-gray-100 text-gray-400 hover:bg-gray-200'
                         }`}
+                        title="Edit"
                       >
                         <Edit2 size={16} />
                       </button>
@@ -239,6 +261,7 @@ const AIReview: React.FC = () => {
                             ? 'bg-tax-red text-white' 
                             : 'bg-gray-100 text-gray-400 hover:bg-gray-200'
                         }`}
+                        title="Incorrect"
                       >
                         <X size={16} />
                       </button>

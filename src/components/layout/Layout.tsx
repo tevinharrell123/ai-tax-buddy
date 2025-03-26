@@ -1,3 +1,4 @@
+
 import React, { ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTaxOrganizer } from '../../context/TaxOrganizerContext';
@@ -80,6 +81,35 @@ const Layout: React.FC<LayoutProps> = ({
     }
   };
 
+  // Function to navigate to a specific step when clicking on step indicators
+  const navigateToStep = (step: number) => {
+    // Only allow navigation to completed steps or the current step
+    if (state.completedSteps.includes(step) || step === state.step) {
+      dispatch({ type: 'SET_STEP', payload: step });
+      
+      // Navigate based on step number
+      switch (step) {
+        case 1:
+          navigate('/');
+          break;
+        case 2:
+          navigate('/review');
+          break;
+        case 4:
+          navigate('/categories');
+          break;
+        case 5:
+          navigate('/questions');
+          break;
+        case 6:
+          navigate('/summary');
+          break;
+        default:
+          break;
+      }
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <header className="border-b bg-white shadow-sm">
@@ -95,13 +125,16 @@ const Layout: React.FC<LayoutProps> = ({
               {[1, 2, 3, 4, 5, 6].map((step) => (
                 <div 
                   key={step} 
+                  onClick={() => navigateToStep(step)}
                   className={`progress-step flex items-center justify-center w-8 h-8 rounded-full transition-all ${
                     step < state.step 
-                      ? 'bg-tax-blue text-white'
+                      ? 'bg-tax-blue text-white cursor-pointer'
                       : step === state.step 
                         ? 'border-2 border-tax-blue text-tax-blue'
-                        : 'bg-gray-100 text-gray-400'
-                  }`}
+                        : state.completedSteps.includes(step)
+                          ? 'bg-tax-blue text-white cursor-pointer'
+                          : 'bg-gray-100 text-gray-400'
+                  } ${state.completedSteps.includes(step) || step === state.step ? 'hover:scale-110 cursor-pointer' : ''}`}
                 >
                   {step < state.step ? <Check size={16} /> : step}
                 </div>
