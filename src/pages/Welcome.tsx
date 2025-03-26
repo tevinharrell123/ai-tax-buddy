@@ -18,6 +18,7 @@ const Welcome: React.FC = () => {
   useEffect(() => {
     // Initialize categories and questions on first load
     if (state.categories.length === 0) {
+      // Explicitly set to step 1 when on welcome page
       dispatch({ type: 'SET_STEP', payload: 1 });
       
       // Initialize with sample data for demo purposes
@@ -39,6 +40,9 @@ const Welcome: React.FC = () => {
         // Simulate AI extraction by adding sample extracted fields
         dispatch({ type: 'SET_EXTRACTED_FIELDS', payload: sampleExtractedFields });
         dispatch({ type: 'MARK_STEP_COMPLETED', payload: 1 });
+        
+        // Set step to 2 before navigating
+        dispatch({ type: 'SET_STEP', payload: 2 });
         
         // Close modal and navigate to review page
         setShowAIModal(false);

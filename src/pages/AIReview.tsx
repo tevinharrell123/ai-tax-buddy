@@ -1,17 +1,26 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTaxOrganizer } from '../context/TaxOrganizerContext';
 import Layout from '../components/layout/Layout';
 import AnimatedCard from '../components/ui/AnimatedCard';
 import { Check, X, Edit2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/hooks/use-toast';
+import { useNavigate } from 'react-router-dom';
 
 const AIReview: React.FC = () => {
   const { state, dispatch } = useTaxOrganizer();
   const [editingField, setEditingField] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');
   const [currentSection, setCurrentSection] = useState(0);
+  const navigate = useNavigate();
+  
+  // Ensure we're on step 2 when this component loads
+  useEffect(() => {
+    if (state.step !== 2) {
+      dispatch({ type: 'SET_STEP', payload: 2 });
+    }
+  }, []);
   
   // Define how many fields to show per section
   const fieldsPerSection = 5;
@@ -81,8 +90,28 @@ const AIReview: React.FC = () => {
 
   const isReviewComplete = state.extractedFields.every(field => field.isCorrect !== null);
 
+  const handleNextStep = () => {
+    if (isReviewComplete) {
+      // Mark this step as completed
+      dispatch({ type: 'MARK_STEP_COMPLETED', payload: 2 });
+      // Move to step 3
+      dispatch({ type: 'SET_STEP', payload: 3 });
+      // Navigate to the highlight page
+      navigate('/highlight');
+      
+      toast({
+        title: "Review Complete!",
+        description: "Moving to document highlighting",
+        variant: "success",
+      });
+    }
+  };
+
   return (
-    <Layout disableNext={!isReviewComplete}>
+    <Layout 
+      disableNext={!isReviewComplete}
+      onNext={handleNextStep}
+    >
       <div className="max-w-3xl mx-auto">
         <AnimatedCard delay={100} className="text-center mb-8">
           <h1 className="text-2xl font-bold mb-2 text-gray-800">Review AI-Extracted Information</h1>
