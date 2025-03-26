@@ -107,11 +107,25 @@ const Welcome: React.FC = () => {
           </div>
           
           <div className="mt-8 flex justify-center">
-            <img 
-              src="/lovable-uploads/00fda3a3-b9f1-4a0c-9c28-a94b4adcd6eb.png" 
-              alt="AI Tax Concept" 
-              className="w-52 h-auto rounded-lg shadow-xl transform -rotate-6 opacity-80"
-            />
+            <div className="relative">
+              {/* Circle around the assistant */}
+              <div className="absolute inset-0 bg-gradient-to-br from-purple-500/30 to-tax-blue/20 rounded-full -m-2"></div>
+              
+              {/* Talking bubble */}
+              <div className="absolute -top-16 -right-10 bg-white p-3 rounded-xl shadow-md before:content-[''] before:absolute before:bottom-0 before:right-5 before:w-4 before:h-4 before:bg-white before:transform before:rotate-45 before:translate-y-2">
+                <p className="text-sm font-medium text-gray-700">Hi! I'll help you with your taxes!</p>
+              </div>
+              
+              {/* Assistant image */}
+              <img 
+                src="/lovable-uploads/e2c4b33b-d4e4-449a-a3ee-389616d5e3fe.png" 
+                alt="Tax Assistant" 
+                className="w-40 h-40 object-cover rounded-full shadow-xl border-4 border-white animate-bounce-gentle"
+              />
+              
+              {/* Glowing effect */}
+              <div className="absolute inset-0 bg-gradient-to-r from-purple-500/20 to-tax-blue/20 rounded-full blur-md -z-10 animate-pulse-light"></div>
+            </div>
           </div>
         </AnimatedCard>
         
