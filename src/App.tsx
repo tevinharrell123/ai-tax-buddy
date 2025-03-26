@@ -12,6 +12,8 @@ import Categories from "./pages/Categories";
 import Questions from "./pages/Questions";
 import Summary from "./pages/Summary";
 import NotFound from "./pages/NotFound";
+import Auth from "./pages/Auth";
+import ProtectedRoute from "./components/auth/ProtectedRoute";
 
 const queryClient = new QueryClient();
 
@@ -23,12 +25,37 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <Routes>
-            <Route path="/" element={<Welcome />} />
-            <Route path="/review" element={<AIReview />} />
-            <Route path="/highlight" element={<DocumentHighlight />} />
-            <Route path="/categories" element={<Categories />} />
-            <Route path="/questions" element={<Questions />} />
-            <Route path="/summary" element={<Summary />} />
+            <Route path="/auth" element={<Auth />} />
+            <Route path="/" element={
+              <ProtectedRoute>
+                <Welcome />
+              </ProtectedRoute>
+            } />
+            <Route path="/review" element={
+              <ProtectedRoute>
+                <AIReview />
+              </ProtectedRoute>
+            } />
+            <Route path="/highlight" element={
+              <ProtectedRoute>
+                <DocumentHighlight />
+              </ProtectedRoute>
+            } />
+            <Route path="/categories" element={
+              <ProtectedRoute>
+                <Categories />
+              </ProtectedRoute>
+            } />
+            <Route path="/questions" element={
+              <ProtectedRoute>
+                <Questions />
+              </ProtectedRoute>
+            } />
+            <Route path="/summary" element={
+              <ProtectedRoute>
+                <Summary />
+              </ProtectedRoute>
+            } />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

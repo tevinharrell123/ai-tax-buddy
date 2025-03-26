@@ -8,8 +8,10 @@ import AIProcessingModal from '../components/ui/AIProcessingModal';
 import { taxCategories, taxQuestions, sampleExtractedFields } from '../data/taxCategories';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
-import { Sparkles, FileText, Bot } from 'lucide-react';
+import { Sparkles, FileText, Bot, LogOut } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
+import { Button } from '@/components/ui/button';
 
 const Welcome: React.FC = () => {
   const { state, dispatch } = useTaxOrganizer();
@@ -17,6 +19,7 @@ const Welcome: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user, signOut } = useAuth();
 
   useEffect(() => {
     // Initialize categories and questions on first load
@@ -31,20 +34,6 @@ const Welcome: React.FC = () => {
         dispatch({ type: 'TOGGLE_CATEGORY', payload: category.id });
       });
     }
-
-    // Check if user is authenticated
-    const checkAuth = async () => {
-      const { data, error } = await supabase.auth.getSession();
-      if (error) {
-        console.error('Error checking auth status:', error);
-      }
-      if (!data.session) {
-        // Redirect to login or show auth dialog
-        console.log('User not authenticated');
-      }
-    };
-
-    checkAuth();
   }, []);
 
   const processDocuments = async () => {
@@ -97,6 +86,11 @@ const Welcome: React.FC = () => {
     }
   };
 
+  const handleSignOut = async () => {
+    await signOut();
+    navigate('/auth');
+  };
+
   return (
     <Layout 
       showBackButton={false}
@@ -106,6 +100,17 @@ const Welcome: React.FC = () => {
       <div className="relative max-w-4xl mx-auto">
         {/* Background gradient effect */}
         <div className="absolute inset-0 bg-gradient-to-br from-purple-900/20 via-blue-800/10 to-transparent rounded-3xl blur-3xl -z-10"></div>
+        
+        <div className="flex justify-end mb-4">
+          <Button 
+            onClick={handleSignOut}
+            variant="outline"
+            className="flex items-center gap-2"
+          >
+            <LogOut size={16} />
+            Sign Out
+          </Button>
+        </div>
         
         <AnimatedCard delay={100} className="text-center mb-8">
           <div className="relative">
@@ -151,7 +156,7 @@ const Welcome: React.FC = () => {
               
               {/* Talking bubble */}
               <div className="absolute -top-16 -right-10 bg-white p-3 rounded-xl shadow-md before:content-[''] before:absolute before:bottom-0 before:right-5 before:w-4 before:h-4 before:bg-white before:transform before:rotate-45 before:translate-y-2">
-                <p className="text-sm font-medium text-gray-700">Hi! I'll help you with your taxes!</p>
+                <p className="text-sm font-medium text-gray-700">Hi{user ? ` ${user.email?.split('@')[0]}` : ''}! I'll help you with your taxes!</p>
               </div>
               
               {/* Assistant image */}
