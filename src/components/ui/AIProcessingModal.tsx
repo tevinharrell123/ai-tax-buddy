@@ -54,7 +54,7 @@ const AIProcessingModal: React.FC<AIProcessingModalProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md" showCloseButton={false}>
+      <DialogContent className="sm:max-w-md">
         <div className="text-center p-6">
           <div className="flex justify-center mb-6">
             <div className="relative">

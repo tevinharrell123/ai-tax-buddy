@@ -3,13 +3,20 @@ import React, { useState } from 'react';
 import { useTaxOrganizer } from '../context/TaxOrganizerContext';
 import Layout from '../components/layout/Layout';
 import AnimatedCard from '../components/ui/AnimatedCard';
-import { Check, X, Edit2 } from 'lucide-react';
+import { Check, X, Edit2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { toast } from '@/hooks/use-toast';
 
 const AIReview: React.FC = () => {
   const { state, dispatch } = useTaxOrganizer();
   const [editingField, setEditingField] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');
-
+  const [currentSection, setCurrentSection] = useState(0);
+  
+  // Define how many fields to show per section
+  const fieldsPerSection = 5;
+  const totalSections = Math.ceil(state.extractedFields.length / fieldsPerSection);
+  
   const handleFieldStatus = (fieldId: string, isCorrect: boolean) => {
     dispatch({
       type: 'UPDATE_EXTRACTED_FIELD',
@@ -35,6 +42,42 @@ const AIReview: React.FC = () => {
     });
     setEditingField(null);
   };
+  
+  const verifyAll = () => {
+    state.extractedFields.forEach(field => {
+      dispatch({
+        type: 'UPDATE_EXTRACTED_FIELD',
+        payload: {
+          id: field.id,
+          updates: { isCorrect: true }
+        }
+      });
+    });
+    
+    toast({
+      title: "All fields verified",
+      description: "All extracted information has been verified",
+      variant: "default"
+    });
+  };
+  
+  const goToNextSection = () => {
+    if (currentSection < totalSections - 1) {
+      setCurrentSection(prev => prev + 1);
+    }
+  };
+  
+  const goToPrevSection = () => {
+    if (currentSection > 0) {
+      setCurrentSection(prev => prev - 1);
+    }
+  };
+
+  // Get fields for current section
+  const currentFields = state.extractedFields.slice(
+    currentSection * fieldsPerSection, 
+    (currentSection + 1) * fieldsPerSection
+  );
 
   const isReviewComplete = state.extractedFields.every(field => field.isCorrect !== null);
 
@@ -50,7 +93,15 @@ const AIReview: React.FC = () => {
         
         <AnimatedCard delay={300}>
           <div className="space-y-6">
-            <h2 className="text-lg font-medium text-gray-800 mb-4">Extracted Information</h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-medium text-gray-800">Extracted Information</h2>
+              <Button 
+                onClick={verifyAll}
+                className="bg-green-500 hover:bg-green-600"
+              >
+                <Check className="mr-2 h-4 w-4" /> Verify All
+              </Button>
+            </div>
             
             <div className="bg-gray-50 p-4 rounded-lg mb-4">
               <p className="text-sm text-gray-600">
@@ -58,8 +109,51 @@ const AIReview: React.FC = () => {
               </p>
             </div>
             
-            <div className="divide-y">
-              {state.extractedFields.map((field) => (
+            {totalSections > 1 && (
+              <div className="flex items-center justify-between mb-4 text-sm text-gray-600">
+                <span>Section {currentSection + 1} of {totalSections}</span>
+                <div className="flex gap-2">
+                  <Button 
+                    onClick={goToPrevSection}
+                    variant="outline"
+                    size="sm"
+                    disabled={currentSection === 0}
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  <Button 
+                    onClick={goToNextSection}
+                    variant="outline"
+                    size="sm"
+                    disabled={currentSection === totalSections - 1}
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            )}
+            
+            <div 
+              className="divide-y touch-pan-y" 
+              onTouchStart={(e) => {
+                const touchStartX = e.touches[0].clientX;
+                const handleTouchEnd = (e: TouchEvent) => {
+                  const touchEndX = e.changedTouches[0].clientX;
+                  const diff = touchStartX - touchEndX;
+                  
+                  if (diff > 50) { // Swiped left
+                    goToNextSection();
+                  } else if (diff < -50) { // Swiped right
+                    goToPrevSection();
+                  }
+                  
+                  document.removeEventListener('touchend', handleTouchEnd);
+                };
+                
+                document.addEventListener('touchend', handleTouchEnd);
+              }}
+            >
+              {currentFields.map((field) => (
                 <div key={field.id} className="py-4 flex items-center justify-between">
                   <div className="flex-1">
                     <p className="text-sm font-medium text-gray-700">{field.name}</p>
