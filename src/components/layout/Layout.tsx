@@ -95,13 +95,13 @@ const Layout: React.FC<LayoutProps> = ({
         case 2:
           navigate('/review');
           break;
-        case 4:
+        case 3:
           navigate('/categories');
           break;
-        case 5:
+        case 4:
           navigate('/questions');
           break;
-        case 6:
+        case 5:
           navigate('/summary');
           break;
         default:
@@ -122,7 +122,7 @@ const Layout: React.FC<LayoutProps> = ({
           </div>
           {showProgress && (
             <div className="hidden md:flex items-center gap-2">
-              {[1, 2, 3, 4, 5, 6].map((step) => (
+              {[1, 2, 3, 4, 5].map((step) => (
                 <div 
                   key={step} 
                   onClick={() => navigateToStep(step)}

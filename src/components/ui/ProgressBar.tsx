@@ -9,10 +9,9 @@ const ProgressBar: React.FC = () => {
   const steps = [
     { id: 1, name: 'Upload' },
     { id: 2, name: 'Review' },
-    { id: 3, name: 'Highlight' },
-    { id: 4, name: 'Categories' },
-    { id: 5, name: 'Questions' },
-    { id: 6, name: 'Summary' },
+    { id: 3, name: 'Categories' },
+    { id: 4, name: 'Questions' },
+    { id: 5, name: 'Summary' },
   ];
 
   return (
