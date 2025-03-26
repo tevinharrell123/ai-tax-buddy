@@ -1,8 +1,9 @@
 
-import React, { ReactNode } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { ReactNode, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useTaxOrganizer } from '../../context/TaxOrganizerContext';
 import { Check, ArrowRight, ArrowLeft, Sparkles } from 'lucide-react';
+import ProgressBar from '../ui/ProgressBar';
 
 type LayoutProps = {
   children: ReactNode;
@@ -27,6 +28,36 @@ const Layout: React.FC<LayoutProps> = ({
 }) => {
   const { state, dispatch } = useTaxOrganizer();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Set the current step based on the route when component mounts
+  useEffect(() => {
+    let currentStep = 1;
+    
+    switch (location.pathname) {
+      case '/':
+        currentStep = 1;
+        break;
+      case '/review':
+        currentStep = 2;
+        break;
+      case '/categories':
+        currentStep = 3;
+        break;
+      case '/questions':
+        currentStep = 4;
+        break;
+      case '/summary':
+        currentStep = 5;
+        break;
+      default:
+        break;
+    }
+    
+    if (currentStep !== state.step) {
+      dispatch({ type: 'SET_STEP', payload: currentStep });
+    }
+  }, [location.pathname, dispatch, state.step]);
 
   const handleNext = () => {
     if (onNext) {
@@ -43,10 +74,10 @@ const Layout: React.FC<LayoutProps> = ({
         case 2:
           navigate('/categories');
           break;
-        case 4:
+        case 3:
           navigate('/questions');
           break;
-        case 5:
+        case 4:
           navigate('/summary');
           break;
         default:
@@ -66,13 +97,13 @@ const Layout: React.FC<LayoutProps> = ({
         case 2:
           navigate('/');
           break;
-        case 4:
+        case 3:
           navigate('/review');
           break;
-        case 5:
+        case 4:
           navigate('/categories');
           break;
-        case 6:
+        case 5:
           navigate('/questions');
           break;
         default:
@@ -142,6 +173,7 @@ const Layout: React.FC<LayoutProps> = ({
             </div>
           )}
         </div>
+        {showProgress && <ProgressBar />}
       </header>
 
       <main className="flex-1 container mx-auto px-6 py-8 max-w-5xl">
