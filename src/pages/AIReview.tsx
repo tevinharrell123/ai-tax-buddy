@@ -94,14 +94,14 @@ const AIReview: React.FC = () => {
     if (isReviewComplete) {
       // Mark this step as completed
       dispatch({ type: 'MARK_STEP_COMPLETED', payload: 2 });
-      // Move to step 3
-      dispatch({ type: 'SET_STEP', payload: 3 });
-      // Navigate to the highlight page
-      navigate('/highlight');
+      // Skip step 3 and go directly to step 4
+      dispatch({ type: 'SET_STEP', payload: 4 });
+      // Navigate directly to the categories page
+      navigate('/categories');
       
       toast({
         title: "Review Complete!",
-        description: "Moving to document highlighting",
+        description: "Moving to tax categories",
         variant: "success",
       });
     }

@@ -1,4 +1,3 @@
-
 import React, { ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTaxOrganizer } from '../../context/TaxOrganizerContext';
@@ -41,9 +40,6 @@ const Layout: React.FC<LayoutProps> = ({
           navigate('/review');
           break;
         case 2:
-          navigate('/highlight');
-          break;
-        case 3:
           navigate('/categories');
           break;
         case 4:
@@ -69,11 +65,8 @@ const Layout: React.FC<LayoutProps> = ({
         case 2:
           navigate('/');
           break;
-        case 3:
-          navigate('/review');
-          break;
         case 4:
-          navigate('/highlight');
+          navigate('/review');
           break;
         case 5:
           navigate('/categories');
