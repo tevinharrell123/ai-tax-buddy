@@ -9,10 +9,12 @@ import { taxCategories, taxQuestions, sampleExtractedFields } from '../data/taxC
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { Sparkles, FileText, Bot } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 const Welcome: React.FC = () => {
   const { state, dispatch } = useTaxOrganizer();
   const [showAIModal, setShowAIModal] = useState(false);
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -29,40 +31,76 @@ const Welcome: React.FC = () => {
         dispatch({ type: 'TOGGLE_CATEGORY', payload: category.id });
       });
     }
+
+    // Check if user is authenticated
+    const checkAuth = async () => {
+      const { data, error } = await supabase.auth.getSession();
+      if (error) {
+        console.error('Error checking auth status:', error);
+      }
+      if (!data.session) {
+        // Redirect to login or show auth dialog
+        console.log('User not authenticated');
+      }
+    };
+
+    checkAuth();
   }, []);
+
+  const processDocuments = async () => {
+    // Show AI processing modal
+    setShowAIModal(true);
+    setLoading(true);
+    
+    try {
+      // Process each document in state
+      for (const doc of state.documents) {
+        // Document has already been uploaded in FileUploader component
+        // Here we would normally call an AI document processing service
+        
+        // Simulate AI processing with a timeout
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+      
+      // Simulate AI extraction by adding sample extracted fields
+      dispatch({ type: 'SET_EXTRACTED_FIELDS', payload: sampleExtractedFields });
+      dispatch({ type: 'MARK_STEP_COMPLETED', payload: 1 });
+      
+      // Set step to 2 before navigating
+      dispatch({ type: 'SET_STEP', payload: 2 });
+      
+      // Close modal and navigate to review page
+      setShowAIModal(false);
+      navigate('/review');
+      
+      // Show success toast
+      toast({
+        title: "Scan Complete!",
+        description: "We've extracted information from your documents. Please review for accuracy.",
+        variant: "success",
+      });
+    } catch (error) {
+      console.error('Error processing documents:', error);
+      toast({
+        title: "Processing Error",
+        description: "There was an error processing your documents. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleNext = () => {
     if (state.documents.length > 0) {
-      // Show AI processing modal
-      setShowAIModal(true);
-      
-      // Simulate AI processing with a timeout
-      setTimeout(() => {
-        // Simulate AI extraction by adding sample extracted fields
-        dispatch({ type: 'SET_EXTRACTED_FIELDS', payload: sampleExtractedFields });
-        dispatch({ type: 'MARK_STEP_COMPLETED', payload: 1 });
-        
-        // Set step to 2 before navigating
-        dispatch({ type: 'SET_STEP', payload: 2 });
-        
-        // Close modal and navigate to review page
-        setShowAIModal(false);
-        navigate('/review');
-        
-        // Show success toast
-        toast({
-          title: "Scan Complete!",
-          description: "We've extracted information from your documents. Please review for accuracy.",
-          variant: "success",
-        });
-      }, 7000); // 7 seconds of "AI processing"
+      processDocuments();
     }
   };
 
   return (
     <Layout 
       showBackButton={false}
-      disableNext={state.documents.length === 0}
+      disableNext={state.documents.length === 0 || loading}
       onNext={handleNext}
     >
       <div className="relative max-w-4xl mx-auto">

@@ -2,11 +2,15 @@
 import React, { useState, useRef } from 'react';
 import { Upload, File, X, Check } from 'lucide-react';
 import { useTaxOrganizer } from '../../context/TaxOrganizerContext';
+import { supabase } from '@/integrations/supabase/client';
+import { v4 as uuidv4 } from 'uuid';
+import { useToast } from '@/hooks/use-toast';
 
 const FileUploader: React.FC = () => {
   const { state, dispatch } = useTaxOrganizer();
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { toast } = useToast();
 
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -32,8 +36,63 @@ const FileUploader: React.FC = () => {
     }
   };
 
+  const uploadFileToSupabase = async (file: File, documentId: string) => {
+    // Get current user session
+    const { data: sessionData } = await supabase.auth.getSession();
+    if (!sessionData.session) {
+      console.error('No authenticated user found');
+      toast({
+        title: "Authentication Error",
+        description: "You must be logged in to upload documents.",
+        variant: "destructive",
+      });
+      return null;
+    }
+
+    const userId = sessionData.session.user.id;
+    const fileExt = file.name.split('.').pop();
+    const filePath = `${userId}/${documentId}.${fileExt}`;
+
+    // Upload file to storage
+    const { data, error } = await supabase.storage
+      .from('tax_documents')
+      .upload(filePath, file, {
+        cacheControl: '3600',
+        upsert: false
+      });
+
+    if (error) {
+      console.error('Error uploading file:', error);
+      return null;
+    }
+
+    // Insert record in documents table
+    const { error: dbError } = await supabase
+      .from('documents')
+      .insert({
+        id: documentId,
+        user_id: userId,
+        name: file.name,
+        file_path: filePath,
+        file_type: file.type,
+        status: 'uploaded'
+      });
+
+    if (dbError) {
+      console.error('Error saving document to database:', dbError);
+      // Delete uploaded file if database insert fails
+      await supabase.storage.from('tax_documents').remove([filePath]);
+      return null;
+    }
+
+    return data.path;
+  };
+
   const handleFiles = (files: FileList) => {
-    Array.from(files).forEach(file => {
+    Array.from(files).forEach(async (file) => {
+      // Create a document ID
+      const documentId = uuidv4();
+      
       // Create a preview URL for the file
       const previewUrl = URL.createObjectURL(file);
       
@@ -47,7 +106,7 @@ const FileUploader: React.FC = () => {
       
       // Create document object
       const document = {
-        id: `doc-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        id: documentId,
         name: file.name,
         file,
         previewUrl,
@@ -59,50 +118,124 @@ const FileUploader: React.FC = () => {
       // Add document to state
       dispatch({ type: 'ADD_DOCUMENT', payload: document });
       
-      // Simulate upload progress
-      let progress = 0;
-      const interval = setInterval(() => {
-        progress += Math.random() * 10;
-        if (progress >= 100) {
-          progress = 100;
-          clearInterval(interval);
+      // Start upload and track progress
+      try {
+        // Simulate upload progress (in a real app, we would use Supabase upload progress events)
+        let progress = 0;
+        const interval = setInterval(() => {
+          progress += Math.random() * 10;
+          if (progress >= 100) {
+            progress = 100;
+            clearInterval(interval);
+          }
           
-          // Update document status after "upload"
+          // Update progress
+          dispatch({ 
+            type: 'UPDATE_DOCUMENT', 
+            payload: { 
+              id: document.id, 
+              updates: { uploadProgress: Math.round(progress) } 
+            } 
+          });
+        }, 200);
+
+        // Upload to Supabase
+        const filePath = await uploadFileToSupabase(file, documentId);
+        
+        // Clear the interval once upload is complete
+        clearInterval(interval);
+        
+        if (filePath) {
+          // Update document status after upload
+          dispatch({ 
+            type: 'UPDATE_DOCUMENT', 
+            payload: { 
+              id: document.id, 
+              updates: { 
+                status: 'uploaded',
+                uploadProgress: 100
+              } 
+            } 
+          });
+          
+          // Simulate processing after successful upload
           setTimeout(() => {
             dispatch({ 
               type: 'UPDATE_DOCUMENT', 
               payload: { 
                 id: document.id, 
-                updates: { status: 'uploaded' } 
+                updates: { status: 'processed' } 
               } 
             });
-            
-            // Simulate processing
-            setTimeout(() => {
-              dispatch({ 
-                type: 'UPDATE_DOCUMENT', 
-                payload: { 
-                  id: document.id, 
-                  updates: { status: 'processed' } 
-                } 
-              });
-            }, 1000);
-          }, 500);
+          }, 1500);
+        } else {
+          // Handle upload failure
+          dispatch({ 
+            type: 'UPDATE_DOCUMENT', 
+            payload: { 
+              id: document.id, 
+              updates: { status: 'error' } 
+            } 
+          });
+          
+          toast({
+            title: "Upload Failed",
+            description: `Failed to upload ${file.name}. Please try again.`,
+            variant: "destructive",
+          });
         }
-        
-        // Update progress
+      } catch (error) {
+        console.error('Upload error:', error);
         dispatch({ 
           type: 'UPDATE_DOCUMENT', 
           payload: { 
             id: document.id, 
-            updates: { uploadProgress: Math.round(progress) } 
+            updates: { status: 'error' } 
           } 
         });
-      }, 200);
+      }
     });
   };
 
-  const removeDocument = (id: string) => {
+  const removeDocument = async (id: string) => {
+    // Get the document from state
+    const document = state.documents.find(d => d.id === id);
+    if (!document) return;
+
+    // If the document was uploaded to Supabase, remove it
+    if (document.status === 'uploaded' || document.status === 'processed') {
+      try {
+        // Get current session
+        const { data: sessionData } = await supabase.auth.getSession();
+        if (!sessionData.session) return;
+
+        const userId = sessionData.session.user.id;
+        
+        // Find the document in the database
+        const { data } = await supabase
+          .from('documents')
+          .select('file_path')
+          .eq('id', id)
+          .single();
+
+        if (data?.file_path) {
+          // Delete file from storage
+          await supabase.storage
+            .from('tax_documents')
+            .remove([data.file_path]);
+          
+          // Delete record from documents table
+          await supabase
+            .from('documents')
+            .delete()
+            .eq('id', id);
+        }
+      } catch (error) {
+        console.error('Error removing document from Supabase:', error);
+      }
+    }
+
+    // Remove from state
     dispatch({ type: 'REMOVE_DOCUMENT', payload: id });
   };
 
