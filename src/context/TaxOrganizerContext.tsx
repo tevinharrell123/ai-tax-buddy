@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useReducer, ReactNode } from 'react';
 
 export type TaxDocument = {
@@ -17,6 +16,7 @@ export type ExtractedField = {
   value: string;
   isCorrect: boolean | null;
   originalValue: string;
+  category?: string;
 };
 
 export type TaxCategory = {
