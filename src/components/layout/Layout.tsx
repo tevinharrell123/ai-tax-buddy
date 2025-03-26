@@ -2,7 +2,7 @@
 import React, { ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTaxOrganizer } from '../../context/TaxOrganizerContext';
-import { Check, ArrowRight, ArrowLeft } from 'lucide-react';
+import { Check, ArrowRight, ArrowLeft, Sparkles } from 'lucide-react';
 
 type LayoutProps = {
   children: ReactNode;
@@ -142,14 +142,23 @@ const Layout: React.FC<LayoutProps> = ({
               <button
                 onClick={handleNext}
                 disabled={disableNext}
-                className={`btn-primary flex items-center gap-2 px-6 py-2 rounded-lg ${
+                className={`flex items-center gap-2 px-6 py-2 rounded-lg bg-tax-blue text-white ${
                   disableNext 
                     ? 'opacity-50 cursor-not-allowed' 
                     : 'hover:bg-blue-600 transform hover:-translate-y-1 transition-all'
                 }`}
               >
-                {nextButtonText}
-                <ArrowRight size={16} />
+                {state.step === 1 ? (
+                  <>
+                    <span>Scan with AI</span>
+                    <Sparkles size={16} className="ml-1" />
+                  </>
+                ) : (
+                  <>
+                    {nextButtonText}
+                    <ArrowRight size={16} />
+                  </>
+                )}
               </button>
             )}
           </div>

@@ -1,13 +1,19 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useTaxOrganizer } from '../context/TaxOrganizerContext';
 import Layout from '../components/layout/Layout';
 import FileUploader from '../components/ui/FileUploader';
 import AnimatedCard from '../components/ui/AnimatedCard';
+import AIProcessingModal from '../components/ui/AIProcessingModal';
 import { taxCategories, taxQuestions, sampleExtractedFields } from '../data/taxCategories';
+import { useNavigate } from 'react-router-dom';
+import { useToast } from '@/hooks/use-toast';
 
 const Welcome: React.FC = () => {
   const { state, dispatch } = useTaxOrganizer();
+  const [showAIModal, setShowAIModal] = useState(false);
+  const navigate = useNavigate();
+  const { toast } = useToast();
 
   useEffect(() => {
     // Initialize categories and questions on first load
@@ -25,9 +31,26 @@ const Welcome: React.FC = () => {
 
   const handleNext = () => {
     if (state.documents.length > 0) {
-      // Simulate AI extraction by adding sample extracted fields
-      dispatch({ type: 'SET_EXTRACTED_FIELDS', payload: sampleExtractedFields });
-      dispatch({ type: 'MARK_STEP_COMPLETED', payload: 1 });
+      // Show AI processing modal
+      setShowAIModal(true);
+      
+      // Simulate AI processing with a timeout
+      setTimeout(() => {
+        // Simulate AI extraction by adding sample extracted fields
+        dispatch({ type: 'SET_EXTRACTED_FIELDS', payload: sampleExtractedFields });
+        dispatch({ type: 'MARK_STEP_COMPLETED', payload: 1 });
+        
+        // Close modal and navigate to review page
+        setShowAIModal(false);
+        navigate('/review');
+        
+        // Show success toast
+        toast({
+          title: "Scan Complete!",
+          description: "We've extracted information from your documents. Please review for accuracy.",
+          variant: "success",
+        });
+      }, 7000); // 7 seconds of "AI processing"
     }
   };
 
@@ -72,6 +95,12 @@ const Welcome: React.FC = () => {
           <FileUploader />
         </AnimatedCard>
       </div>
+      
+      {/* AI Processing Modal */}
+      <AIProcessingModal 
+        open={showAIModal} 
+        onOpenChange={setShowAIModal} 
+      />
     </Layout>
   );
 };
