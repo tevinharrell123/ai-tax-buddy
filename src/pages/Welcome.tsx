@@ -10,6 +10,7 @@ import { Sparkles, FileText, Bot, LogOut } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
+import { taxCategories } from '../data/taxCategories';
 
 const Welcome: React.FC = () => {
   const { state, dispatch } = useTaxOrganizer();
