@@ -7,6 +7,7 @@ import {
   DollarSign, MinusCircle, Gift, Users, Home, Heart, TrendingUp, Briefcase, Check
 } from 'lucide-react';
 import { taxCategories, taxQuestions } from '../data/taxCategories';
+import { toast } from '@/components/ui/use-toast';
 
 const Categories: React.FC = () => {
   const { state, dispatch } = useTaxOrganizer();
@@ -56,15 +57,33 @@ const Categories: React.FC = () => {
   const toggleCategory = (categoryId: string) => {
     dispatch({ type: 'TOGGLE_CATEGORY', payload: categoryId });
     
-    // If a category gets selected, add a badge to it
+    // Get the category that was toggled
     const category = state.categories.find(c => c.id === categoryId);
-    if (category && !category.selected) {
-      // Add a random badge when selecting a new category for gamification
-      const badges = ['Expert', 'Fast Learner', 'Detail Oriented', 'Tax Pro', 'Organized'];
-      const randomBadge = badges[Math.floor(Math.random() * badges.length)];
-      
-      // This would be handled by the reducer, but for simplicity we're just logging here
-      console.log(`Earned badge: ${randomBadge} for ${category.name}`);
+    
+    if (category) {
+      // Show different toast messages based on selection state
+      if (!category.selected) {
+        // If the category is being selected
+        toast({
+          title: `${category.name} Selected`,
+          description: "You can now select specific items that apply to you.",
+          variant: "default",
+        });
+        
+        // Add a random badge when selecting a new category for gamification
+        const badges = ['Expert', 'Fast Learner', 'Detail Oriented', 'Tax Pro', 'Organized'];
+        const randomBadge = badges[Math.floor(Math.random() * badges.length)];
+        
+        // This would be handled by the reducer, but for simplicity we're just logging here
+        console.log(`Earned badge: ${randomBadge} for ${category.name}`);
+      } else {
+        // If the category is being deselected
+        toast({
+          title: `${category.name} Removed`,
+          description: "This category has been removed from your selections.",
+          variant: "destructive",
+        });
+      }
     }
   };
   
@@ -73,6 +92,21 @@ const Categories: React.FC = () => {
       type: 'TOGGLE_SUBCATEGORY', 
       payload: { categoryId, subcategoryId } 
     });
+    
+    // Get the subcategory that was toggled
+    const category = state.categories.find(c => c.id === categoryId);
+    const subcategory = category?.subcategories?.find(s => s.id === subcategoryId);
+    
+    if (subcategory) {
+      // Show toast message for subcategory toggle
+      toast({
+        title: subcategory.selected ? `${subcategory.name} Removed` : `${subcategory.name} Added`,
+        description: subcategory.selected 
+          ? "This item has been removed from your selections." 
+          : "This item has been added to your selections.",
+        variant: subcategory.selected ? "destructive" : "default",
+      });
+    }
   };
   
   return (
@@ -86,73 +120,90 @@ const Categories: React.FC = () => {
         </AnimatedCard>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {taxCategories.map((category, index) => (
-            <AnimatedCard 
-              key={category.id} 
-              delay={200 + index * 100}
-              className={`category-item cursor-pointer ${
-                category.selected ? 'border-2 border-tax-blue bg-tax-lightBlue' : 'border'
-              }`}
-            >
-              <div 
-                className="p-4"
-                onClick={() => toggleCategory(category.id)}
+          {taxCategories.map((category, index) => {
+            // Find the category in state to get the current selected status
+            const stateCategory = state.categories.find(c => c.id === category.id);
+            const isSelected = stateCategory?.selected || false;
+            
+            return (
+              <AnimatedCard 
+                key={category.id} 
+                delay={200 + index * 100}
+                className={`category-item cursor-pointer transition-all duration-300 transform hover:scale-105 ${
+                  isSelected 
+                    ? 'border-2 border-tax-blue bg-tax-lightBlue shadow-md' 
+                    : 'border hover:border-tax-blue hover:shadow-lg'
+                }`}
               >
-                <div className="flex justify-between items-start">
-                  <div className={`p-3 rounded-lg ${
-                    category.selected 
-                      ? 'bg-tax-blue text-white' 
-                      : 'bg-gray-100 text-gray-500'
-                  }`}>
-                    {getIconForCategory(category.icon)}
+                <div 
+                  className="p-4 h-full"
+                  onClick={() => toggleCategory(category.id)}
+                >
+                  <div className="flex justify-between items-start">
+                    <div className={`p-3 rounded-lg transition-all duration-300 ${
+                      isSelected 
+                        ? 'bg-tax-blue text-white' 
+                        : 'bg-gray-100 text-gray-500'
+                    }`}>
+                      {getIconForCategory(category.icon)}
+                    </div>
+                    
+                    {isSelected && (
+                      <div className="bg-white text-tax-blue border border-tax-blue rounded-full p-1 animate-bounce-gentle">
+                        <Check size={16} />
+                      </div>
+                    )}
                   </div>
                   
-                  {category.selected && (
-                    <div className="bg-white text-tax-blue border border-tax-blue rounded-full p-1">
-                      <Check size={16} />
+                  <h3 className="text-lg font-semibold mt-4 mb-2">{category.name}</h3>
+                  <p className="text-gray-600 text-sm mb-4">
+                    {category.description}
+                  </p>
+                  
+                  {category.badge && (
+                    <div className="inline-block badge bg-tax-lightBlue text-tax-blue">
+                      {category.badge}
                     </div>
                   )}
                 </div>
                 
-                <h3 className="text-lg font-semibold mt-4 mb-2">{category.name}</h3>
-                <p className="text-gray-600 text-sm mb-4">
-                  {category.description}
-                </p>
-                
-                {category.badge && (
-                  <div className="inline-block badge bg-tax-lightBlue text-tax-blue">
-                    {category.badge}
+                {isSelected && category.subcategories && (
+                  <div className="border-t px-4 py-3 bg-white animate-fade-in">
+                    <h4 className="text-sm font-medium mb-2">Select what applies to you:</h4>
+                    <div className="space-y-2">
+                      {category.subcategories.map(sub => {
+                        // Find the subcategory in state
+                        const stateSubcategory = stateCategory?.subcategories?.find(s => s.id === sub.id);
+                        const isSubSelected = stateSubcategory?.selected || false;
+                        
+                        return (
+                          <div 
+                            key={sub.id}
+                            className="flex items-center text-sm"
+                          >
+                            <div 
+                              className={`w-5 h-5 rounded-md mr-2 flex items-center justify-center border cursor-pointer transition-all duration-200 ${
+                                isSubSelected 
+                                  ? 'bg-tax-blue border-tax-blue text-white scale-110' 
+                                  : 'border-gray-300 hover:border-tax-blue'
+                              }`}
+                              onClick={(e) => {
+                                e.stopPropagation(); // Prevent category toggle
+                                toggleSubcategory(category.id, sub.id);
+                              }}
+                            >
+                              {isSubSelected && <Check size={12} />}
+                            </div>
+                            <span>{sub.name}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                 )}
-              </div>
-              
-              {category.selected && category.subcategories && (
-                <div className="border-t px-4 py-3 bg-white">
-                  <h4 className="text-sm font-medium mb-2">Select what applies to you:</h4>
-                  <div className="space-y-2">
-                    {category.subcategories.map(sub => (
-                      <div 
-                        key={sub.id}
-                        className="flex items-center text-sm"
-                      >
-                        <div 
-                          className={`w-5 h-5 rounded-md mr-2 flex items-center justify-center border cursor-pointer ${
-                            sub.selected 
-                              ? 'bg-tax-blue border-tax-blue text-white' 
-                              : 'border-gray-300'
-                          }`}
-                          onClick={() => toggleSubcategory(category.id, sub.id)}
-                        >
-                          {sub.selected && <Check size={12} />}
-                        </div>
-                        <span>{sub.name}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </AnimatedCard>
-          ))}
+              </AnimatedCard>
+            );
+          })}
         </div>
         
         <div className="mt-8 bg-tax-lightBlue rounded-lg p-6">
