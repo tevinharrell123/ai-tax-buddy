@@ -1,11 +1,9 @@
-
 import React, { useEffect, useState } from 'react';
 import { useTaxOrganizer } from '../context/TaxOrganizerContext';
 import Layout from '../components/layout/Layout';
 import FileUploader from '../components/ui/FileUploader';
 import AnimatedCard from '../components/ui/AnimatedCard';
 import AIProcessingModal from '../components/ui/AIProcessingModal';
-import { taxCategories, taxQuestions, sampleExtractedFields } from '../data/taxCategories';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { Sparkles, FileText, Bot, LogOut } from 'lucide-react';
@@ -22,13 +20,8 @@ const Welcome: React.FC = () => {
   const { user, signOut } = useAuth();
 
   useEffect(() => {
-    // Initialize categories and questions on first load
     if (state.categories.length === 0) {
-      // Explicitly set to step 1 when on welcome page
       dispatch({ type: 'SET_STEP', payload: 1 });
-      
-      // Initialize with sample data for demo purposes
-      // In a real application, this would come from a backend
       taxCategories.forEach(category => {
         const updatedCategory = { ...category, badge: null };
         dispatch({ type: 'TOGGLE_CATEGORY', payload: category.id });
@@ -37,32 +30,27 @@ const Welcome: React.FC = () => {
   }, []);
 
   const processDocuments = async () => {
-    // Show AI processing modal
     setShowAIModal(true);
     setLoading(true);
     
     try {
-      // Process each document in state
-      for (const doc of state.documents) {
-        // Document has already been uploaded in FileUploader component
-        // Here we would normally call an AI document processing service
-        
-        // Simulate AI processing with a timeout
-        await new Promise(resolve => setTimeout(resolve, 1000));
-      }
+      const { data, error } = await supabase.functions.invoke('extract-document-info', {
+        body: JSON.stringify({ documents: state.documents })
+      });
+
+      if (error) throw error;
+
+      dispatch({ 
+        type: 'SET_EXTRACTED_FIELDS', 
+        payload: data.extractedFields 
+      });
       
-      // Simulate AI extraction by adding sample extracted fields
-      dispatch({ type: 'SET_EXTRACTED_FIELDS', payload: sampleExtractedFields });
       dispatch({ type: 'MARK_STEP_COMPLETED', payload: 1 });
-      
-      // Set step to 2 before navigating
       dispatch({ type: 'SET_STEP', payload: 2 });
       
-      // Close modal and navigate to review page
       setShowAIModal(false);
       navigate('/review');
       
-      // Show success toast
       toast({
         title: "Scan Complete!",
         description: "We've extracted information from your documents. Please review for accuracy.",
@@ -98,7 +86,6 @@ const Welcome: React.FC = () => {
       onNext={handleNext}
     >
       <div className="relative max-w-4xl mx-auto">
-        {/* Background gradient effect */}
         <div className="absolute inset-0 bg-gradient-to-br from-purple-900/20 via-blue-800/10 to-transparent rounded-3xl blur-3xl -z-10"></div>
         
         <div className="flex justify-end mb-4">
@@ -151,22 +138,18 @@ const Welcome: React.FC = () => {
           
           <div className="mt-8 flex justify-center">
             <div className="relative">
-              {/* Circle around the assistant */}
               <div className="absolute inset-0 bg-gradient-to-br from-purple-500/30 to-tax-blue/20 rounded-full -m-2"></div>
               
-              {/* Talking bubble */}
               <div className="absolute -top-16 -right-10 bg-white p-3 rounded-xl shadow-md before:content-[''] before:absolute before:bottom-0 before:right-5 before:w-4 before:h-4 before:bg-white before:transform before:rotate-45 before:translate-y-2">
                 <p className="text-sm font-medium text-gray-700">Hi{user ? ` ${user.email?.split('@')[0]}` : ''}! I'll help you with your taxes!</p>
               </div>
               
-              {/* Assistant image */}
               <img 
                 src="/lovable-uploads/e2c4b33b-d4e4-449a-a3ee-389616d5e3fe.png" 
                 alt="Tax Assistant" 
                 className="w-40 h-40 object-cover rounded-full shadow-xl border-4 border-white animate-bounce-gentle"
               />
               
-              {/* Glowing effect */}
               <div className="absolute inset-0 bg-gradient-to-r from-purple-500/20 to-tax-blue/20 rounded-full blur-md -z-10 animate-pulse-light"></div>
             </div>
           </div>
@@ -182,7 +165,6 @@ const Welcome: React.FC = () => {
         </AnimatedCard>
       </div>
       
-      {/* AI Processing Modal */}
       <AIProcessingModal 
         open={showAIModal} 
         onOpenChange={setShowAIModal} 
