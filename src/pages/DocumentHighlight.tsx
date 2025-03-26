@@ -1,9 +1,8 @@
-
 import React, { useState, useRef } from 'react';
 import { useTaxOrganizer } from '../context/TaxOrganizerContext';
 import Layout from '../components/layout/Layout';
 import AnimatedCard from '../components/ui/AnimatedCard';
-import { Pencil, XCircle, Save, SkipForward } from 'lucide-react';
+import { Pencil, XCircle, Save, SkipForward, Check } from 'lucide-react';
 
 const DocumentHighlight: React.FC = () => {
   const { state, dispatch } = useTaxOrganizer();
