@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useTaxOrganizer } from '../context/TaxOrganizerContext';
 import Layout from '../components/layout/Layout';
@@ -137,23 +138,7 @@ const Welcome: React.FC = () => {
             </div>
           </div>
           
-          <div className="mt-8 flex justify-center">
-            <div className="relative">
-              <div className="absolute inset-0 bg-gradient-to-br from-purple-500/30 to-tax-blue/20 rounded-full -m-2"></div>
-              
-              <div className="absolute -top-16 -right-10 bg-white p-3 rounded-xl shadow-md before:content-[''] before:absolute before:bottom-0 before:right-5 before:w-4 before:h-4 before:bg-white before:transform before:rotate-45 before:translate-y-2">
-                <p className="text-sm font-medium text-gray-700">Hi{user ? ` ${user.email?.split('@')[0]}` : ''}! I'll help you with your taxes!</p>
-              </div>
-              
-              <img 
-                src="/lovable-uploads/e2c4b33b-d4e4-449a-a3ee-389616d5e3fe.png" 
-                alt="Tax Assistant" 
-                className="w-40 h-40 object-cover rounded-full shadow-xl border-4 border-white animate-bounce-gentle"
-              />
-              
-              <div className="absolute inset-0 bg-gradient-to-r from-purple-500/20 to-tax-blue/20 rounded-full blur-md -z-10 animate-pulse-light"></div>
-            </div>
-          </div>
+          {/* Removed the AI assistant image from here since it's now in the Layout */}
         </AnimatedCard>
         
         <AnimatedCard delay={300} className="backdrop-blur-sm bg-white/80 border border-gray-200/50 shadow-xl rounded-xl">

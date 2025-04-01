@@ -1,9 +1,10 @@
 
-import React, { ReactNode, useEffect } from 'react';
+import React, { ReactNode, useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTaxOrganizer } from '../../context/TaxOrganizerContext';
-import { Check, ArrowRight, ArrowLeft, Sparkles } from 'lucide-react';
+import { Check, ArrowRight, ArrowLeft, Sparkles, HelpCircle } from 'lucide-react';
 import ProgressBar from '../ui/ProgressBar';
+import AIAssistantButton from '../ui/AIAssistantButton';
 
 type LayoutProps = {
   children: ReactNode;
@@ -29,6 +30,7 @@ const Layout: React.FC<LayoutProps> = ({
   const { state, dispatch } = useTaxOrganizer();
   const navigate = useNavigate();
   const location = useLocation();
+  const isWelcomePage = location.pathname === '/';
 
   // Set the current step based on the route when component mounts
   useEffect(() => {
@@ -176,10 +178,25 @@ const Layout: React.FC<LayoutProps> = ({
         {showProgress && <ProgressBar />}
       </header>
 
-      <main className="flex-1 container mx-auto px-6 py-8 max-w-5xl">
+      <main className="flex-1 container mx-auto px-6 py-8 max-w-5xl relative">
         <div className="animate-fade-in">
           {children}
         </div>
+        
+        {/* This is the AI assistant image/button */}
+        {isWelcomePage ? (
+          <div className="fixed bottom-24 right-10 z-50">
+            <img 
+              src="/lovable-uploads/e2c4b33b-d4e4-449a-a3ee-389616d5e3fe.png" 
+              alt="Tax Assistant" 
+              className="w-24 h-24 object-cover rounded-full shadow-xl border-4 border-white animate-bounce-gentle"
+            />
+          </div>
+        ) : (
+          <div className="fixed bottom-24 right-10 z-50">
+            <AIAssistantButton />
+          </div>
+        )}
       </main>
 
       <footer className="border-t bg-white shadow-sm mt-auto">
