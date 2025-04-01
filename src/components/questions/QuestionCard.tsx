@@ -16,7 +16,7 @@ interface CustomQuestion {
   text: string;
   categoryId: string;
   options: string[];
-  answer?: string | null; // Added answer field to match Question type
+  answer?: string | null;
   missingDocument?: MissingDocument | null;
   followUpQuestions?: {
     [answer: string]: CustomQuestion[];
@@ -47,7 +47,7 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
   // Convert CustomQuestion[] to Question[] for the FollowUpQuestions component
   const convertedFollowUps: Question[] = followUpQuestions.map(q => ({
     ...q,
-    answer: q.answer || null,
+    answer: q.answer || null, // Ensure answer is not undefined
   }));
 
   return (

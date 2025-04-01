@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/popover";
 import { Progress } from "@/components/ui/progress";
 import FollowUpQuestions from '@/components/ui/FollowUpQuestions';
+import QuestionCard from '@/components/questions/QuestionCard';
 
 interface MissingDocument {
   name: string;
@@ -26,6 +27,7 @@ interface CustomQuestion {
   text: string;
   categoryId: string;
   options: string[];
+  answer?: string | null;
   missingDocument?: MissingDocument | null;
   followUpQuestions?: {
     [answer: string]: CustomQuestion[];
@@ -41,7 +43,7 @@ interface Question {
   followUpQuestions?: {
     [answer: string]: CustomQuestion[];
   };
-  answer?: string;
+  answer: string | null;
 }
 
 const Questions: React.FC = () => {
