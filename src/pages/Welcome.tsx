@@ -55,7 +55,7 @@ const Welcome: React.FC = () => {
       
       toast({
         title: "Scan Complete!",
-        description: "We've extracted information from your documents. Please review for accuracy.",
+        description: "We've extracted information from your documents using Claude AI. Please review for accuracy.",
         variant: "success",
       });
     } catch (error) {
@@ -104,7 +104,7 @@ const Welcome: React.FC = () => {
         <AnimatedCard delay={100} className="text-center mb-8">
           <div className="relative">
             <span className="absolute -top-6 left-1/2 transform -translate-x-1/2 bg-gradient-to-r from-purple-500 to-blue-500 text-white text-xs px-4 py-1 rounded-full">
-              AI-Powered
+              Claude AI-Powered
             </span>
             <h1 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-br from-purple-600 via-blue-500 to-tax-blue bg-clip-text text-transparent">
               Welcome to your Tax Experience
@@ -137,8 +137,6 @@ const Welcome: React.FC = () => {
               <span className="text-sm text-gray-500">Tax Magic</span>
             </div>
           </div>
-          
-          {/* Removed the AI assistant image from here since it's now in the Layout */}
         </AnimatedCard>
         
         <AnimatedCard delay={300} className="backdrop-blur-sm bg-white/80 border border-gray-200/50 shadow-xl rounded-xl">

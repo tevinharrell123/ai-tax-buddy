@@ -1,6 +1,5 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import OpenAI from "https://esm.sh/openai@4.20.1";
+import { decode as base64Decode } from "https://deno.land/std@0.168.0/encoding/base64.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -14,9 +13,10 @@ serve(async (req) => {
   }
 
   try {
-    const openai = new OpenAI({
-      apiKey: Deno.env.get('OPENAI_API_KEY'),
-    });
+    const claudeApiKey = Deno.env.get('CLAUDE_API_KEY');
+    if (!claudeApiKey) {
+      throw new Error('CLAUDE_API_KEY is not set in environment variables');
+    }
 
     const { documents } = await req.json();
     console.log(`Processing ${documents.length} documents`);
@@ -31,28 +31,43 @@ serve(async (req) => {
       // Create more specific, detailed prompts based on document name and type
       const documentPrompt = createDetailedPrompt(doc);
       
-      // Call OpenAI to analyze the document
-      const response = await openai.chat.completions.create({
-        model: "gpt-4o-mini", // Using GPT-4o-mini for better extraction
-        messages: [
-          {
-            role: "system",
-            content: `You are a specialized tax document analyzer that extracts specific information from tax documents. 
-            Extract all requested information in a detailed, structured JSON format.
-            If you cannot find a value, respond with "null" rather than "Not found".
-            Focus on finding precise values for each requested field.`
-          },
-          {
-            role: "user",
-            content: documentPrompt
-          }
-        ],
-        response_format: { type: "json_object" }, // Force JSON response format
-        max_tokens: 1000 // Increased token limit to ensure complete extraction
+      // Call Claude to analyze the document
+      const response = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': claudeApiKey,
+          'anthropic-version': '2023-06-01'
+        },
+        body: JSON.stringify({
+          model: "claude-3-sonnet-20240229",
+          max_tokens: 1000,
+          messages: [
+            {
+              role: "user",
+              content: [
+                {
+                  type: "text",
+                  text: documentPrompt
+                }
+              ]
+            }
+          ],
+          system: "You are a specialized tax document analyzer that extracts specific information from tax documents. Extract all requested information in a detailed, structured JSON format. If you cannot find a value, respond with \"null\" rather than \"Not found\". Focus on finding precise values for each requested field.",
+          response_format: { type: "json_object" }
+        })
       });
 
-      console.log("OpenAI response received");
-      const extractedText = response.choices[0].message.content;
+      console.log("Claude API response received");
+      
+      if (!response.ok) {
+        const errorBody = await response.text();
+        console.error(`Error from Claude API: ${response.status} - ${errorBody}`);
+        throw new Error(`Claude API error: ${response.status}`);
+      }
+      
+      const claudeResponse = await response.json();
+      const extractedText = claudeResponse.content[0].text;
       console.log(`Extracted text sample: ${extractedText.substring(0, 100)}...`);
       
       // Parse the extracted fields - enhanced parsing logic
@@ -88,7 +103,7 @@ serve(async (req) => {
   }
 });
 
-// Create more detailed prompts based on document type
+// Create more detailed prompts based on document type - keeping the same logic
 function createDetailedPrompt(doc) {
   const fileName = doc.name.toLowerCase();
   
@@ -238,7 +253,7 @@ function createDetailedPrompt(doc) {
   }
 }
 
-// Parse extracted JSON data into structured fields
+// Parse extracted JSON data into structured fields - keeping the same logic
 function parseExtractedData(doc, extractedData) {
   const fields = [];
   const fileName = doc.name.toLowerCase();
@@ -707,7 +722,7 @@ function parseExtractedData(doc, extractedData) {
   return fields;
 }
 
-// Legacy parsing function for backward compatibility
+// Legacy parsing function for backward compatibility - keeping the same logic
 function parseDocumentFields(doc, extractedText) {
   const fields = [];
   const fileName = doc.name.toLowerCase();
@@ -920,7 +935,7 @@ function parseDocumentFields(doc, extractedText) {
   return fields;
 }
 
-// Helper to extract values from potential JSON or text
+// Helper to extract values from potential JSON or text - keeping the same logic
 function extractValue(data, possibleKeys) {
   // If data is an object, try to find matching keys
   if (typeof data === 'object' && data !== null) {
@@ -959,7 +974,7 @@ function extractValue(data, possibleKeys) {
   return "Not found";
 }
 
-// Create a summary from extracted text
+// Create a summary from extracted text - keeping the same logic
 function summarizeDocument(data) {
   if (typeof data === 'object' && data !== null) {
     // Try to create a summary from available keys/values

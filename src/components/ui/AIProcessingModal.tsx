@@ -30,7 +30,7 @@ const AIProcessingModal: React.FC<AIProcessingModalProps> = ({
           if (prev === 20) {
             toast({
               title: "Reading documents...",
-              description: "AI is analyzing your tax forms",
+              description: "Claude AI is analyzing your tax forms",
             });
           } else if (prev === 50) {
             toast({
@@ -68,9 +68,9 @@ const AIProcessingModal: React.FC<AIProcessingModalProps> = ({
             </div>
           </div>
 
-          <h2 className="text-xl font-semibold mb-2">AI Magic in Progress</h2>
+          <h2 className="text-xl font-semibold mb-2">Claude AI Magic in Progress</h2>
           <p className="text-gray-600 mb-6">
-            Our AI assistant is scanning your documents and extracting tax information. This will only take a moment...
+            Our Claude AI assistant is scanning your documents and extracting tax information. This will only take a moment...
           </p>
 
           <Progress value={progress} className="h-2 mb-2" />
