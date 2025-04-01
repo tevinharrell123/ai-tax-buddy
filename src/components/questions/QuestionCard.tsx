@@ -45,35 +45,25 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
   onUploadMissingDocument
 }) => {
   // Create a proper compatibility layer that ensures all required fields for Question[] are present
-  const convertedFollowUps: Question[] = followUpQuestions.map(q => {
-    // First convert the nested followUpQuestions if they exist
-    let convertedNestedFollowUps: { [answer: string]: Question[] } | undefined;
+  const convertToQuestion = (q: CustomQuestion): Question => {
+    // Handle followUpQuestions recursively
+    let convertedFollowUpQuestions: { [answer: string]: Question[] } | undefined;
     
     if (q.followUpQuestions) {
-      convertedNestedFollowUps = {};
-      Object.keys(q.followUpQuestions).forEach(key => {
-        convertedNestedFollowUps![key] = q.followUpQuestions![key].map(nestedQ => ({
-          ...nestedQ,
-          answer: nestedQ.answer || null, // Ensure answer is not undefined
-          // Handle deeper nested followUpQuestions
-          followUpQuestions: nestedQ.followUpQuestions 
-            ? Object.fromEntries(
-                Object.entries(nestedQ.followUpQuestions).map(([k, v]) => [
-                  k, 
-                  v.map(fq => ({ ...fq, answer: fq.answer || null }))
-                ])
-              )
-            : undefined
-        }));
+      convertedFollowUpQuestions = {};
+      Object.entries(q.followUpQuestions).forEach(([key, questions]) => {
+        convertedFollowUpQuestions![key] = questions.map(followUpQ => convertToQuestion(followUpQ));
       });
     }
 
     return {
       ...q,
       answer: q.answer || null, // Ensure answer is not undefined
-      followUpQuestions: convertedNestedFollowUps
+      followUpQuestions: convertedFollowUpQuestions
     };
-  });
+  };
+
+  const convertedFollowUps: Question[] = followUpQuestions.map(convertToQuestion);
 
   return (
     <AnimatedCard key={question.id} className="min-h-[300px] flex flex-col">
