@@ -46,17 +46,9 @@ const Footer: React.FC<FooterProps> = ({
                   : 'hover:shadow-lg transform hover:-translate-y-1 transition-all'
               }`}
             >
-              {step === 1 ? (
-                <>
-                  <span>Scan with Claude AI</span>
-                  <Sparkles size={16} className="ml-1" />
-                </>
-              ) : (
-                <>
-                  {nextButtonText}
-                  <ArrowRight size={16} />
-                </>
-              )}
+              {nextButtonText}
+              {step === 1 && <Sparkles size={16} className="ml-1" />}
+              {step !== 1 && <ArrowRight size={16} />}
             </button>
           )}
         </div>
