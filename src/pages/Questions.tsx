@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState, useCallback } from 'react';
 import { useTaxOrganizer } from '../context/TaxOrganizerContext';
 import Layout from '../components/layout/Layout';
@@ -38,16 +37,13 @@ const Questions: React.FC = () => {
   const { toast } = useToast();
   const [showConfetti, setShowConfetti] = useState(false);
 
-  // Create a function to fetch personalized questions
   const fetchPersonalizedQuestions = useCallback(async () => {
     setIsLoading(true);
     setError(null);
 
     try {
-      // Only send selected categories to the Claude API
       const selectedCategories = state.categories.filter(cat => cat.selected);
       
-      // Map documents to a simplified format
       const documents = state.documents.map(doc => ({
         id: doc.id,
         name: doc.name,
@@ -55,7 +51,6 @@ const Questions: React.FC = () => {
         category: doc.category
       }));
 
-      // Call our Supabase Edge Function
       const { data, error } = await supabase.functions.invoke('generate-tax-questions', {
         body: { selectedCategories, documents }
       });
@@ -67,7 +62,6 @@ const Questions: React.FC = () => {
       if (data?.questions && Array.isArray(data.questions)) {
         console.log("Received custom questions:", data.questions);
         
-        // Ensure each question has a valid ID and process them
         const processedQuestions = data.questions.map(q => ({
           ...q,
           id: q.id || uuidv4()
@@ -75,7 +69,6 @@ const Questions: React.FC = () => {
         
         setCustomQuestions(processedQuestions);
         
-        // Initialize questions in state
         processedQuestions.forEach(question => {
           dispatch({ 
             type: 'ANSWER_QUESTION', 
@@ -93,7 +86,6 @@ const Questions: React.FC = () => {
       console.error("Failed to fetch personalized questions:", err);
       setError(`Failed to generate personalized questions: ${err instanceof Error ? err.message : 'Unknown error'}`);
       
-      // Fallback to default questions if there's an error
       const defaultQuestions = taxQuestions.map(q => ({
         id: q.id,
         text: q.text,
@@ -103,7 +95,6 @@ const Questions: React.FC = () => {
       
       setCustomQuestions(defaultQuestions);
       
-      // Initialize questions in state with defaults
       defaultQuestions.forEach(question => {
         dispatch({ 
           type: 'ANSWER_QUESTION', 
@@ -116,11 +107,9 @@ const Questions: React.FC = () => {
   }, [state.categories, state.documents, dispatch]);
 
   useEffect(() => {
-    // Fetch personalized questions when the component mounts
     fetchPersonalizedQuestions();
   }, [fetchPersonalizedQuestions]);
 
-  // Apply confetti effect when answering a question
   const createConfetti = () => {
     setShowConfetti(true);
     
@@ -138,7 +127,6 @@ const Questions: React.FC = () => {
       
       container.appendChild(confetti);
       
-      // Remove confetti after animation completes
       setTimeout(() => {
         if (confetti.parentNode === container) {
           container.removeChild(confetti);
@@ -157,10 +145,8 @@ const Questions: React.FC = () => {
       payload: { id: questionId, answer }
     });
     
-    // Add confetti effect
     createConfetti();
     
-    // Move to next question after a brief delay
     setTimeout(() => {
       if (activeQuestion < customQuestions.length - 1) {
         setActiveQuestion(activeQuestion + 1);
@@ -192,10 +178,9 @@ const Questions: React.FC = () => {
   };
 
   const handleUploadMissingDocument = () => {
-    // Navigate to document upload page
     dispatch({
       type: 'SET_STEP',
-      payload: 1 // Assuming 1 is the upload document step
+      payload: 1
     });
     
     toast({
@@ -390,7 +375,6 @@ const Questions: React.FC = () => {
           </div>
         </AnimatedCard>
         
-        {/* Add styles for confetti animation */}
         <style jsx>{`
           .confetti {
             position: absolute;
