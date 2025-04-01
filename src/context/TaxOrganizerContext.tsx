@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useReducer, ReactNode } from 'react';
 
 export type TaxDocument = {
@@ -9,6 +8,7 @@ export type TaxDocument = {
   uploadProgress: number;
   type: string;
   status: 'uploading' | 'uploaded' | 'processed' | 'error';
+  category?: string;
 };
 
 export type ExtractedField = {
