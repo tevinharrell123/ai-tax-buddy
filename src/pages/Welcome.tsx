@@ -12,6 +12,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { taxCategories } from '../data/taxCategories';
+import { v4 as uuidv4 } from 'uuid';
 
 const Welcome: React.FC = () => {
   const { state, dispatch } = useTaxOrganizer();
@@ -52,37 +53,40 @@ const Welcome: React.FC = () => {
       // Simulate processing time
       await new Promise(resolve => setTimeout(resolve, 3000));
       
-      // Create mock extracted fields based on document categories
+      // Create mock extracted fields based on document categories - now with the correct structure
       const extractedFields = state.documents.map(doc => {
         if (doc.category === 'identification') {
           return {
-            field_type: 'personal',
-            field_name: 'full_name',
-            field_value: 'Sample Name',
-            confidence: 0.95,
-            document_id: doc.id
+            id: uuidv4(),
+            name: 'full_name',
+            value: 'Sample Name',
+            isCorrect: null,
+            originalValue: 'Sample Name',
+            category: 'personal'
           };
         } else if (doc.category === 'tax-forms') {
           return {
-            field_type: 'income',
-            field_name: 'wages',
-            field_value: '75000',
-            confidence: 0.92,
-            document_id: doc.id
+            id: uuidv4(),
+            name: 'wages',
+            value: '75000',
+            isCorrect: null,
+            originalValue: '75000',
+            category: 'income'
           };
         }
         return {
-          field_type: 'other',
-          field_name: doc.name,
-          field_value: 'Document processed',
-          confidence: 0.85,
-          document_id: doc.id
+          id: uuidv4(),
+          name: doc.name,
+          value: 'Document processed',
+          isCorrect: null,
+          originalValue: 'Document processed',
+          category: 'other'
         };
       });
       
       dispatch({ 
         type: 'SET_EXTRACTED_FIELDS', 
-        payload: extractedFields || [] 
+        payload: extractedFields
       });
       
       dispatch({ type: 'MARK_STEP_COMPLETED', payload: 1 });
