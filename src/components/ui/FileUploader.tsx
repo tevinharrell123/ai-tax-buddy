@@ -19,9 +19,9 @@ const FileUploader: React.FC = () => {
       id: "identification", 
       name: "Identification", 
       description: "Driver's license, passport, or other ID", 
-      icon: <CreditCard className="text-tax-purple" size={24} />, 
-      color: "bg-tax-lightPurple border-tax-purple/30",
-      activeColor: "bg-tax-purple text-white"
+      icon: <CreditCard className="text-tax-red" size={24} />, 
+      color: "bg-tax-lightRed border-tax-red/30",
+      activeColor: "bg-tax-red text-white"
     },
     { 
       id: "tax-forms", 
