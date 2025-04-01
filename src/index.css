@@ -1,4 +1,3 @@
-
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@400;500;600;700&display=swap');
 
 @tailwind base;
@@ -7,7 +6,7 @@
 
 @layer base {
   :root {
-    --background: 320 100% 97%;
+    --background: 210 50% 98%;
     --foreground: 222.2 84% 4.9%;
 
     --card: 0 0% 100%;
@@ -16,16 +15,16 @@
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
 
-    --primary: 196 83% 55%;
+    --primary: 207 100% 40%;
     --primary-foreground: 210 40% 98%;
 
-    --secondary: 320 100% 94%;
+    --secondary: 210 50% 96%;
     --secondary-foreground: 222.2 47.4% 11.2%;
 
     --muted: 210 40% 96.1%;
     --muted-foreground: 215.4 16.3% 46.9%;
 
-    --accent: 262 58% 57%;
+    --accent: 206 100% 50%;
     --accent-foreground: 222.2 47.4% 11.2%;
 
     --destructive: 0 84.2% 60.2%;
@@ -221,7 +220,7 @@
   left: 16px;
   width: 16px;
   height: 16px;
-  background-color: #2AABEE;
+  background-color: #0077CC;
   clip-path: polygon(0 0, 100% 0, 50% 100%);
 }
 
@@ -238,4 +237,32 @@
   height: 16px;
   background-color: #e5e7eb;
   clip-path: polygon(0 0, 100% 0, 50% 100%);
+}
+
+.sidebar-menu {
+  @apply bg-tax-blue text-white rounded-r-2xl shadow-lg;
+}
+
+.step-indicator {
+  @apply h-8 w-8 rounded-full flex items-center justify-center text-sm font-medium;
+}
+
+.step-indicator.active {
+  @apply bg-tax-blue text-white;
+}
+
+.step-indicator.completed {
+  @apply bg-green-500 text-white;
+}
+
+.step-indicator.inactive {
+  @apply bg-gray-200 text-gray-500;
+}
+
+.step-connector {
+  @apply w-full h-1 bg-gray-200;
+}
+
+.step-connector.active {
+  @apply bg-tax-blue;
 }

@@ -40,7 +40,7 @@ const Footer: React.FC<FooterProps> = ({
             <button
               onClick={onNext}
               disabled={disableNext}
-              className={`flex items-center gap-2 px-6 py-2 rounded-full bg-gradient-to-r from-tax-blue to-tax-purple text-white ${
+              className={`flex items-center gap-2 px-6 py-2 rounded-full bg-tax-blue text-white ${
                 disableNext 
                   ? 'opacity-50 cursor-not-allowed' 
                   : 'hover:shadow-lg transform hover:-translate-y-1 transition-all'

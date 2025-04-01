@@ -32,7 +32,7 @@ const ProgressBar: React.FC = () => {
             <div 
               className={`w-9 h-9 rounded-full flex items-center justify-center transition-all ${
                 state.completedSteps.includes(step.id)
-                  ? 'bg-gradient-to-r from-tax-blue to-tax-purple text-white shadow-md'
+                  ? 'bg-tax-blue text-white shadow-md'
                   : step.id === state.step
                     ? 'border-2 border-tax-blue text-tax-blue'
                     : 'bg-gray-100 text-gray-400'
@@ -55,14 +55,14 @@ const ProgressBar: React.FC = () => {
       
       <div className="relative w-full h-3 bg-gray-100 rounded-full mt-2">
         <div 
-          className="absolute top-0 left-0 h-3 bg-gradient-to-r from-tax-blue to-tax-purple rounded-full transition-all duration-500"
+          className="absolute top-0 left-0 h-3 bg-tax-blue rounded-full transition-all duration-500"
           style={{ width: `${((state.step - 1) / (steps.length - 1)) * 100}%` }}
         />
         {steps.map((step, index) => (
           <div 
             key={step.id}
             className={`absolute top-0 h-3 w-3 rounded-full transition-all ${
-              step.id <= state.step ? 'bg-tax-purple' : 'bg-gray-100'
+              step.id <= state.step ? 'bg-tax-blue' : 'bg-gray-100'
             }`}
             style={{ left: `${(index / (steps.length - 1)) * 100}%`, transform: 'translateX(-50%)' }}
           />

@@ -14,10 +14,10 @@ const Header: React.FC<HeaderProps> = ({ showProgress = true }) => {
     <header className="border-b bg-white/90 backdrop-blur-md shadow-sm sticky top-0 z-40">
       <div className="container py-4 px-6 mx-auto flex justify-between items-center">
         <div className="flex items-center gap-2">
-          <div className="bg-gradient-to-br from-tax-blue to-tax-purple text-white p-2 rounded-lg shadow-lg transform hover:rotate-3 transition-transform">
+          <div className="bg-tax-blue text-white p-2 rounded-lg shadow-md transform hover:rotate-3 transition-transform">
             <FileText size={24} />
           </div>
-          <h1 className="text-xl font-bold bg-gradient-to-r from-tax-blue via-tax-purple to-pink-500 bg-clip-text text-transparent">SmartWiz Tax</h1>
+          <h1 className="text-xl font-bold bg-gradient-to-r from-tax-blue to-tax-skyBlue bg-clip-text text-transparent">2024 Tax Return</h1>
         </div>
         {showProgress && <StepIndicators />}
       </div>
@@ -39,11 +39,11 @@ const StepIndicators: React.FC = () => {
           onClick={() => navigateToStep(step)}
           className={`progress-step flex items-center justify-center w-9 h-9 rounded-full transition-all ${
             step < state.step 
-              ? 'bg-gradient-to-r from-tax-blue to-tax-purple text-white shadow-md cursor-pointer'
+              ? 'bg-tax-blue text-white shadow-md cursor-pointer'
               : step === state.step 
                 ? 'border-2 border-tax-blue text-tax-blue animate-pulse-light'
                 : state.completedSteps.includes(step)
-                  ? 'bg-gradient-to-r from-tax-blue to-tax-purple text-white shadow-md cursor-pointer'
+                  ? 'bg-tax-blue text-white shadow-md cursor-pointer'
                   : 'bg-gray-100 text-gray-400'
           } ${state.completedSteps.includes(step) || step === state.step ? 'hover:scale-110 cursor-pointer' : ''}`}
         >

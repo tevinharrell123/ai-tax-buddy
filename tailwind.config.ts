@@ -1,4 +1,3 @@
-
 import type { Config } from "tailwindcss";
 
 export default {
@@ -64,12 +63,12 @@ export default {
 					ring: 'hsl(var(--sidebar-ring))'
 				},
 				tax: {
-					blue: '#2AABEE',
+					blue: '#0077CC',
 					lightBlue: '#E9F4FF',
+					mediumBlue: '#4DA9FF',
+					skyBlue: '#60B2FF', 
 					green: '#44C4A1',
 					lightGreen: '#E6F7F2',
-					purple: '#6C5DD3',
-					lightPurple: '#EEEDFC',
 					yellow: '#FFCE73',
 					lightYellow: '#FFF8EC',
 					red: '#FF6370',
@@ -84,39 +83,39 @@ export default {
 				sm: 'calc(var(--radius) - 4px)'
 			},
 			keyframes: {
-				'accordion-down': {
+				"accordion-down": {
 					from: { height: '0' },
 					to: { height: 'var(--radix-accordion-content-height)' }
 				},
-				'accordion-up': {
+				"accordion-up": {
 					from: { height: 'var(--radix-accordion-content-height)' },
 					to: { height: '0' }
 				},
-				'fade-in': {
+				"fade-in": {
 					'0%': { opacity: '0', transform: 'translateY(10px)' },
 					'100%': { opacity: '1', transform: 'translateY(0)' }
 				},
-				'fade-out': {
+				"fade-out": {
 					'0%': { opacity: '1', transform: 'translateY(0)' },
 					'100%': { opacity: '0', transform: 'translateY(10px)' }
 				},
-				'slide-in': {
+				"slide-in": {
 					'0%': { transform: 'translateX(100%)' },
 					'100%': { transform: 'translateX(0)' }
 				},
-				'slide-out': {
+				"slide-out": {
 					'0%': { transform: 'translateX(0)' },
 					'100%': { transform: 'translateX(-100%)' }
 				},
-				'scale-in': {
+				"scale-in": {
 					'0%': { transform: 'scale(0.95)', opacity: '0' },
 					'100%': { transform: 'scale(1)', opacity: '1' }
 				},
-				'pulse-light': {
+				"pulse-light": {
 					'0%, 100%': { opacity: '1' },
 					'50%': { opacity: '0.7' }
 				},
-				'bounce-gentle': {
+				"bounce-gentle": {
 					'0%, 100%': { transform: 'translateY(0)' },
 					'50%': { transform: 'translateY(-5px)' }
 				},
@@ -150,8 +149,8 @@ export default {
 			backgroundImage: {
 				'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
 				'pink-gradient': 'linear-gradient(to bottom, #FFD6E7 0%, #FFF0F8 100%)',
-				'blue-gradient': 'linear-gradient(to bottom, #2AABEE 0%, #5CCBFF 100%)',
-				'purple-gradient': 'linear-gradient(to bottom, #6C5DD3 0%, #A99BEA 100%)',
+				'blue-gradient': 'linear-gradient(to bottom, #0077CC 0%, #4DA9FF 100%)',
+				'light-blue-gradient': 'linear-gradient(to right, #E9F4FF 0%, #F8FBFF 100%)',
 			}
 		}
 	},
