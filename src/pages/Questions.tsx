@@ -16,6 +16,7 @@ import {
 import { Progress } from "@/components/ui/progress";
 import FollowUpQuestions from '@/components/ui/FollowUpQuestions';
 import QuestionCard from '@/components/questions/QuestionCard';
+import { Question as TaxQuestion } from '@/context/TaxOrganizerContext';
 
 interface MissingDocument {
   name: string;
@@ -34,6 +35,7 @@ interface CustomQuestion {
   };
 }
 
+// Using TaxQuestion alias for clarity to distinguish from the internal Question interface
 interface Question {
   id: string;
   text: string;
@@ -271,7 +273,7 @@ const Questions: React.FC = () => {
     return expandedQuestions.has(questionId);
   };
 
-  const convertToQuestions = (customQuestions: CustomQuestion[]): Question[] => {
+  const convertToQuestions = (customQuestions: CustomQuestion[]): TaxQuestion[] => {
     return customQuestions.map(q => ({
       ...q,
       answer: q.answer || null,

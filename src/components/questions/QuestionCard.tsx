@@ -44,11 +44,28 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
   currentAnswer,
   onUploadMissingDocument
 }) => {
-  // Convert CustomQuestion[] to Question[] for the FollowUpQuestions component
-  const convertedFollowUps: Question[] = followUpQuestions.map(q => ({
-    ...q,
-    answer: q.answer || null, // Ensure answer is not undefined
-  }));
+  // Create a proper compatibility layer that ensures all required fields for Question[] are present
+  const convertedFollowUps: Question[] = followUpQuestions.map(q => {
+    // First convert the nested followUpQuestions if they exist
+    let convertedNestedFollowUps: { [answer: string]: Question[] } | undefined;
+    
+    if (q.followUpQuestions) {
+      convertedNestedFollowUps = {};
+      Object.keys(q.followUpQuestions).forEach(key => {
+        convertedNestedFollowUps![key] = q.followUpQuestions![key].map(nestedQ => ({
+          ...nestedQ,
+          answer: nestedQ.answer || null, // Ensure answer is not undefined
+          followUpQuestions: undefined // Remove any nested followUpQuestions to avoid recursion issues
+        }));
+      });
+    }
+
+    return {
+      ...q,
+      answer: q.answer || null, // Ensure answer is not undefined
+      followUpQuestions: convertedNestedFollowUps
+    };
+  });
 
   return (
     <AnimatedCard key={question.id} className="min-h-[300px] flex flex-col">
