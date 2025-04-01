@@ -274,10 +274,35 @@ const Questions: React.FC = () => {
   };
 
   const convertToQuestions = (customQuestions: CustomQuestion[]): TaxQuestion[] => {
-    return customQuestions.map(q => ({
-      ...q,
-      answer: q.answer || null,
-    }));
+    return customQuestions.map(q => {
+      // Process nested followUpQuestions recursively if they exist
+      let processedFollowUpQuestions: { [answer: string]: TaxQuestion[] } | undefined;
+      
+      if (q.followUpQuestions) {
+        processedFollowUpQuestions = {};
+        Object.keys(q.followUpQuestions).forEach(key => {
+          processedFollowUpQuestions![key] = q.followUpQuestions![key].map(nestedQ => ({
+            ...nestedQ,
+            answer: nestedQ.answer || null, // Ensure answer is not undefined
+            // Process nested followUpQuestions recursively if needed
+            followUpQuestions: nestedQ.followUpQuestions 
+              ? Object.fromEntries(
+                  Object.entries(nestedQ.followUpQuestions).map(([k, v]) => [
+                    k, 
+                    v.map(fq => ({ ...fq, answer: fq.answer || null }))
+                  ])
+                )
+              : undefined
+          }));
+        });
+      }
+      
+      return {
+        ...q,
+        answer: q.answer || null, // Ensure answer is not undefined
+        followUpQuestions: processedFollowUpQuestions
+      };
+    });
   };
 
   return (

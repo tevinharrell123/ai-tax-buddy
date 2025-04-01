@@ -55,7 +55,15 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
         convertedNestedFollowUps![key] = q.followUpQuestions![key].map(nestedQ => ({
           ...nestedQ,
           answer: nestedQ.answer || null, // Ensure answer is not undefined
-          followUpQuestions: undefined // Remove any nested followUpQuestions to avoid recursion issues
+          // Handle deeper nested followUpQuestions
+          followUpQuestions: nestedQ.followUpQuestions 
+            ? Object.fromEntries(
+                Object.entries(nestedQ.followUpQuestions).map(([k, v]) => [
+                  k, 
+                  v.map(fq => ({ ...fq, answer: fq.answer || null }))
+                ])
+              )
+            : undefined
         }));
       });
     }
