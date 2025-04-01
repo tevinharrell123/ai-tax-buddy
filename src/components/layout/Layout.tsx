@@ -63,10 +63,10 @@ const Layout: React.FC<LayoutProps> = ({
   }, [location.pathname, dispatch, state.step]);
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-screen bg-background tax-container flex flex-col">
       <Header showProgress={showProgress} />
 
-      <main className="flex-1 container mx-auto px-6 py-8 max-w-5xl relative">
+      <main className="flex-1 container mx-auto px-4 md:px-6 py-8 max-w-5xl relative">
         <div className="animate-fade-in">
           {children}
         </div>

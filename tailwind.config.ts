@@ -64,7 +64,7 @@ export default {
 					ring: 'hsl(var(--sidebar-ring))'
 				},
 				tax: {
-					blue: '#1A85FF',
+					blue: '#2AABEE',
 					lightBlue: '#E9F4FF',
 					green: '#44C4A1',
 					lightGreen: '#E6F7F2',
@@ -74,6 +74,8 @@ export default {
 					lightYellow: '#FFF8EC',
 					red: '#FF6370',
 					lightRed: '#FFECEE',
+					pink: '#FFD6E7',
+					lightPink: '#FFF0F8',
 				}
 			},
 			borderRadius: {
@@ -122,6 +124,14 @@ export default {
 					'0%': { transform: 'translateY(0) rotate(0)', opacity: '1' },
 					'100%': { transform: 'translateY(650px) rotate(90deg)', opacity: '0' }
 				},
+				float: {
+					'0%, 100%': { transform: 'translateY(0)' },
+					'50%': { transform: 'translateY(-10px)' }
+				},
+				wiggle: {
+					'0%, 100%': { transform: 'rotate(-3deg)' },
+					'50%': { transform: 'rotate(3deg)' }
+				},
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
@@ -134,6 +144,14 @@ export default {
 				'pulse-light': 'pulse-light 2s ease-in-out infinite',
 				'bounce-gentle': 'bounce-gentle 2s ease-in-out infinite',
 				'confetti': 'confetti 2s ease-out forwards',
+				'float': 'float 3s ease-in-out infinite',
+				'wiggle': 'wiggle 1s ease-in-out infinite',
+			},
+			backgroundImage: {
+				'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
+				'pink-gradient': 'linear-gradient(to bottom, #FFD6E7 0%, #FFF0F8 100%)',
+				'blue-gradient': 'linear-gradient(to bottom, #2AABEE 0%, #5CCBFF 100%)',
+				'purple-gradient': 'linear-gradient(to bottom, #6C5DD3 0%, #A99BEA 100%)',
 			}
 		}
 	},

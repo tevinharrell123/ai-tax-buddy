@@ -22,13 +22,13 @@ const Footer: React.FC<FooterProps> = ({
   onNext
 }) => {
   return (
-    <footer className="border-t bg-white shadow-sm mt-auto">
+    <footer className="border-t bg-white/90 backdrop-blur-md shadow-md mt-auto sticky bottom-0">
       <div className="container mx-auto px-6 py-4 flex justify-between items-center">
         <div>
           {showBackButton && step > 1 && (
             <button
               onClick={onBack}
-              className="flex items-center gap-2 text-gray-600 hover:text-tax-blue transition-colors"
+              className="flex items-center gap-2 text-gray-600 hover:text-tax-blue transition-colors px-4 py-2 rounded-lg hover:bg-gray-100"
             >
               <ArrowLeft size={16} />
               Back
@@ -40,10 +40,10 @@ const Footer: React.FC<FooterProps> = ({
             <button
               onClick={onNext}
               disabled={disableNext}
-              className={`flex items-center gap-2 px-6 py-2 rounded-lg bg-tax-blue text-white ${
+              className={`flex items-center gap-2 px-6 py-2 rounded-full bg-gradient-to-r from-tax-blue to-tax-purple text-white ${
                 disableNext 
                   ? 'opacity-50 cursor-not-allowed' 
-                  : 'hover:bg-blue-600 transform hover:-translate-y-1 transition-all'
+                  : 'hover:shadow-lg transform hover:-translate-y-1 transition-all'
               }`}
             >
               {step === 1 ? (
