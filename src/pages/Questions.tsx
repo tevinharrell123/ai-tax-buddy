@@ -374,28 +374,6 @@ const Questions: React.FC = () => {
             </div>
           </div>
         </AnimatedCard>
-        
-        <style jsx>{`
-          .confetti {
-            position: absolute;
-            width: 10px;
-            height: 10px;
-            opacity: 0.8;
-            border-radius: 50%;
-            animation: fall 2s ease-in-out forwards;
-          }
-          
-          @keyframes fall {
-            0% {
-              transform: translateY(-100px) rotate(0deg);
-              opacity: 1;
-            }
-            100% {
-              transform: translateY(600px) rotate(360deg);
-              opacity: 0;
-            }
-          }
-        `}</style>
       </div>
     </Layout>
   );
