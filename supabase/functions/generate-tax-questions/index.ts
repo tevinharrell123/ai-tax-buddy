@@ -45,7 +45,8 @@ For each question:
 1. Make it specific to the categories and documents
 2. Include appropriate options for multiple choice answers
 3. Identify if any required document is missing
-4. Provide a question ID, text, category ID reference, and multiple choice options
+4. For yes/no questions that can lead to potential deductions or credits, include follow-up questions
+5. Provide a question ID, text, category ID reference, and multiple choice options
 
 Output only valid JSON in this format:
 [
@@ -54,10 +55,22 @@ Output only valid JSON in this format:
     "text": "Question text here",
     "categoryId": "related-category-id",
     "options": ["Option 1", "Option 2", "Option 3"],
-    "missingDocument": null or { "name": "Document Name", "description": "Brief description of what this document is" }
+    "missingDocument": null or { "name": "Document Name", "description": "Brief description of what this document is" },
+    "followUpQuestions": {
+      "Option 1": [
+        {
+          "id": "follow-up-question-uuid",
+          "text": "Follow-up question text here",
+          "categoryId": "related-category-id",
+          "options": ["Option A", "Option B", "Option C"]
+        }
+      ]
+    }
   },
   ...more questions
-]`;
+]
+
+Important: Include detailed follow-up questions whenever a response to a main question could lead to additional tax deductions or credits. For example, if asking about dependents, include follow-ups about their ages, student status, etc. If asking about education expenses, include follow-ups about textbooks, equipment, etc. These follow-up questions are critical for maximizing the user's tax refund.`;
 
     console.log("Sending request to Claude API");
     
@@ -70,7 +83,7 @@ Output only valid JSON in this format:
       },
       body: JSON.stringify({
         model: "claude-3-haiku-20240307",
-        max_tokens: 2000,
+        max_tokens: 4000,
         messages: [
           { role: "user", content: prompt }
         ]
@@ -100,19 +113,59 @@ Output only valid JSON in this format:
       console.error("Error parsing Claude response:", error);
       console.log("Raw response:", content);
       
-      // Fallback to default questions
+      // Fallback to default questions with follow-ups
       extractedQuestions = [
         {
           "id": "default-q1",
           "text": "What's your filing status?",
           "categoryId": "general",
-          "options": ["Single", "Married filing jointly", "Married filing separately", "Head of household", "Qualifying widow(er)"]
+          "options": ["Single", "Married filing jointly", "Married filing separately", "Head of household", "Qualifying widow(er)"],
+          "followUpQuestions": {
+            "Head of household": [
+              {
+                "id": "follow-up-hoh-1",
+                "text": "Did you provide more than half the cost of keeping up a home for the year?",
+                "categoryId": "general",
+                "options": ["Yes", "No", "I'm not sure"]
+              }
+            ]
+          }
         },
         {
           "id": "default-q2", 
           "text": "Did you have any dependents in the tax year?",
           "categoryId": "general",
-          "options": ["No", "Yes, one dependent", "Yes, multiple dependents"]
+          "options": ["No", "Yes, one dependent", "Yes, multiple dependents"],
+          "followUpQuestions": {
+            "Yes, one dependent": [
+              {
+                "id": "follow-up-dep-1",
+                "text": "What is your dependent's relationship to you?",
+                "categoryId": "family",
+                "options": ["Child", "Parent", "Other relative", "Non-relative"]
+              },
+              {
+                "id": "follow-up-dep-2",
+                "text": "Was your dependent a full-time student for at least 5 months of the year?",
+                "categoryId": "family",
+                "options": ["Yes", "No"]
+              }
+            ],
+            "Yes, multiple dependents": [
+              {
+                "id": "follow-up-deps-1",
+                "text": "How many dependents do you have?",
+                "categoryId": "family",
+                "options": ["2", "3", "4", "5 or more"]
+              },
+              {
+                "id": "follow-up-deps-2",
+                "text": "Were any of your dependents full-time students for at least 5 months of the year?",
+                "categoryId": "family",
+                "options": ["Yes, all of them", "Yes, some of them", "No"]
+              }
+            ]
+          }
         }
       ];
     }

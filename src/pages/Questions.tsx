@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState, useCallback } from 'react';
 import { useTaxOrganizer } from '../context/TaxOrganizerContext';
 import Layout from '../components/layout/Layout';
@@ -14,6 +15,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Progress } from "@/components/ui/progress";
+import FollowUpQuestions from '@/components/ui/FollowUpQuestions';
 
 interface MissingDocument {
   name: string;
@@ -26,6 +28,9 @@ interface CustomQuestion {
   categoryId: string;
   options: string[];
   missingDocument?: MissingDocument | null;
+  followUpQuestions?: {
+    [answer: string]: CustomQuestion[];
+  };
 }
 
 const Questions: React.FC = () => {
@@ -36,6 +41,9 @@ const Questions: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
   const [showConfetti, setShowConfetti] = useState(false);
+  const [parentAnswers] = useState(new Map<string, string>());
+  const [displayedFollowUps, setDisplayedFollowUps] = useState<{[questionId: string]: CustomQuestion[]}>({});
+  const [expandedQuestions, setExpandedQuestions] = useState<Set<string>>(new Set());
 
   const fetchPersonalizedQuestions = useCallback(async () => {
     setIsLoading(true);
@@ -145,13 +153,42 @@ const Questions: React.FC = () => {
       payload: { id: questionId, answer }
     });
     
+    parentAnswers.set(questionId, answer);
+    
     createConfetti();
     
-    setTimeout(() => {
-      if (activeQuestion < customQuestions.length - 1) {
-        setActiveQuestion(activeQuestion + 1);
-      }
-    }, 800);
+    // Handle follow-up questions
+    const currentQuestion = customQuestions.find(q => q.id === questionId);
+    if (currentQuestion?.followUpQuestions?.[answer]) {
+      const followUps = currentQuestion.followUpQuestions[answer];
+      setDisplayedFollowUps(prev => ({
+        ...prev,
+        [questionId]: followUps
+      }));
+      
+      setExpandedQuestions(prev => {
+        const next = new Set(prev);
+        next.add(questionId);
+        return next;
+      });
+      
+      followUps.forEach(followUpQ => {
+        dispatch({ 
+          type: 'ANSWER_QUESTION', 
+          payload: { id: followUpQ.id, answer: '' } 
+        });
+      });
+    }
+    
+    // Auto-advance to next question after a delay if no follow-ups
+    const hasFollowUps = currentQuestion?.followUpQuestions?.[answer];
+    if (!hasFollowUps) {
+      setTimeout(() => {
+        if (activeQuestion < customQuestions.length - 1) {
+          setActiveQuestion(activeQuestion + 1);
+        }
+      }, 800);
+    }
     
     toast({
       title: "Answer recorded",
@@ -171,6 +208,8 @@ const Questions: React.FC = () => {
   const handleRefreshQuestions = () => {
     fetchPersonalizedQuestions();
     setActiveQuestion(0);
+    setDisplayedFollowUps({});
+    setExpandedQuestions(new Set());
     toast({
       title: "Refreshing questions",
       description: "Generating new questions based on your selections.",
@@ -190,10 +229,34 @@ const Questions: React.FC = () => {
   };
 
   const currentQuestion = customQuestions[activeQuestion];
-  const answeredCount = customQuestions.filter(
-    q => state.questions.find(sq => sq.id === q.id)?.answer
+  
+  // Calculate answered count including follow-up questions
+  const allQuestionIds = new Set<string>();
+  
+  // Add main questions
+  customQuestions.forEach(q => allQuestionIds.add(q.id));
+  
+  // Add follow-up questions that are displayed
+  Object.values(displayedFollowUps).forEach(questions => {
+    questions.forEach(q => allQuestionIds.add(q.id));
+  });
+  
+  const answeredCount = Array.from(allQuestionIds).filter(
+    qId => {
+      const answer = state.questions.find(sq => sq.id === qId)?.answer;
+      return answer && answer !== '';
+    }
   ).length;
-  const progress = customQuestions.length > 0 ? (answeredCount / customQuestions.length) * 100 : 0;
+  
+  const progress = allQuestionIds.size > 0 ? (answeredCount / allQuestionIds.size) * 100 : 0;
+
+  const getQuestionFollowUps = (questionId: string): CustomQuestion[] => {
+    return displayedFollowUps[questionId] || [];
+  };
+
+  const isQuestionExpanded = (questionId: string): boolean => {
+    return expandedQuestions.has(questionId);
+  };
 
   return (
     <Layout>
@@ -279,25 +342,47 @@ const Questions: React.FC = () => {
                       q => q.id === currentQuestion.id
                     )?.answer === option;
                     
+                    const hasFollowUps = currentQuestion.followUpQuestions?.[option]?.length > 0;
+                    
                     return (
-                      <button
-                        key={option}
-                        onClick={() => handleAnswer(currentQuestion.id, option)}
-                        className={`w-full text-left p-4 rounded-lg border-2 transition-all ${
-                          isSelected 
-                            ? 'border-tax-blue bg-tax-lightBlue' 
-                            : 'border-gray-200 hover:border-gray-300'
-                        }`}
-                      >
-                        <div className="flex items-center justify-between">
-                          <span className="font-medium">{option}</span>
-                          {isSelected && (
-                            <div className="bg-tax-blue text-white rounded-full p-1">
-                              <Check size={16} />
+                      <div key={option} className="flex flex-col">
+                        <button
+                          onClick={() => handleAnswer(currentQuestion.id, option)}
+                          className={`w-full text-left p-4 rounded-lg border-2 transition-all ${
+                            isSelected 
+                              ? 'border-tax-blue bg-tax-lightBlue' 
+                              : 'border-gray-200 hover:border-gray-300'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="font-medium">{option}</span>
+                            <div className="flex items-center">
+                              {hasFollowUps && isSelected && (
+                                <span className="text-xs bg-tax-blue text-white px-2 py-0.5 rounded-full mr-2">
+                                  Follow-up
+                                </span>
+                              )}
+                              {isSelected && (
+                                <div className="bg-tax-blue text-white rounded-full p-1">
+                                  <Check size={16} />
+                                </div>
+                              )}
                             </div>
-                          )}
-                        </div>
-                      </button>
+                          </div>
+                        </button>
+                        
+                        {/* Show follow-up questions if this option is selected */}
+                        {isSelected && 
+                         hasFollowUps && 
+                         isQuestionExpanded(currentQuestion.id) && 
+                         displayedFollowUps[currentQuestion.id] && (
+                          <FollowUpQuestions 
+                            questions={getQuestionFollowUps(currentQuestion.id)} 
+                            onAnswer={handleAnswer}
+                            parentAnswers={parentAnswers}
+                          />
+                        )}
+                      </div>
                     );
                   })}
                 </div>

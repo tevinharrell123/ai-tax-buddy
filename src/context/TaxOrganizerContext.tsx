@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useReducer, ReactNode } from 'react';
 
 export type TaxDocument = {
@@ -46,6 +45,10 @@ export type Question = {
     categoryId: string;
     selected: boolean;
   };
+  followUpQuestions?: {
+    [answer: string]: Question[];
+  };
+  parentQuestionId?: string;
 };
 
 export type TaxOrganizerState = {
@@ -87,6 +90,7 @@ type Action =
   | { type: 'ADD_HIGHLIGHT'; payload: TaxOrganizerState['highlights'][0] }
   | { type: 'REMOVE_HIGHLIGHT'; payload: string }
   | { type: 'ANSWER_QUESTION'; payload: { id: string; answer: string } }
+  | { type: 'ADD_FOLLOW_UP_QUESTIONS'; payload: { parentId: string; questions: Question[] } }
   | { type: 'UPDATE_PERSONAL_INFO'; payload: Partial<TaxOrganizerState['personalInfo']> }
   | { type: 'MARK_STEP_COMPLETED'; payload: number }
   | { type: 'RESET' };
@@ -218,6 +222,18 @@ const reducer = (state: TaxOrganizerState, action: Action): TaxOrganizerState =>
             ? { ...q, answer: action.payload.answer } 
             : q
         )
+      };
+    
+    case 'ADD_FOLLOW_UP_QUESTIONS':
+      return {
+        ...state,
+        questions: [
+          ...state.questions,
+          ...action.payload.questions.map(q => ({
+            ...q,
+            parentQuestionId: action.payload.parentId
+          }))
+        ]
       };
     
     case 'UPDATE_PERSONAL_INFO':
