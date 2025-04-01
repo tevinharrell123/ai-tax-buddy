@@ -1,8 +1,7 @@
-
 import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import AIAssistantButton from '../ui/AIAssistantButton';
-import { Robot, ArrowRight } from 'lucide-react';
+import { Bot, ArrowRight } from 'lucide-react';
 
 const AssistantWrapper: React.FC = () => {
   const location = useLocation();
@@ -63,7 +62,7 @@ const AssistantWrapper: React.FC = () => {
             className="w-24 h-24 object-cover rounded-full shadow-xl border-4 border-white animate-float"
           />
           <div className="absolute -top-2 -right-2 bg-tax-purple text-white p-2 rounded-full animate-pulse">
-            <Robot size={16} />
+            <Bot size={16} />
           </div>
         </div>
       ) : (

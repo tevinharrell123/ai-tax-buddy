@@ -1,7 +1,6 @@
-
 import React, { useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import { HelpCircle, X, MessageCircle, Sparkles, Robot } from 'lucide-react';
+import { HelpCircle, X, MessageCircle, Sparkles, Bot } from 'lucide-react';
 import {
   Sheet,
   SheetContent,
@@ -25,7 +24,6 @@ const AIAssistantButton = () => {
   const location = useLocation();
   const { toast } = useToast();
   
-  // Determine context based on current route
   const getContextFromRoute = () => {
     switch(location.pathname) {
       case '/review':
@@ -46,12 +44,9 @@ const AIAssistantButton = () => {
     
     setIsLoading(true);
     
-    // Add user message
     setMessages(prev => [...prev, {type: 'user', content: question}]);
     
     try {
-      // In a real implementation, this would call an API endpoint
-      // For now, we'll simulate a response
       const context = getContextFromRoute();
       
       setTimeout(() => {
@@ -99,7 +94,7 @@ This is a simulated AI response that would actually call a backend API in produc
         <SheetHeader className="text-left">
           <SheetTitle className="flex items-center gap-2">
             <div className="bg-gradient-to-br from-tax-blue to-tax-purple p-2 rounded-full">
-              <Robot size={24} className="text-white" />
+              <Bot size={24} className="text-white" />
             </div>
             <div>
               <span className="bg-gradient-to-r from-tax-blue to-tax-purple bg-clip-text text-transparent">
