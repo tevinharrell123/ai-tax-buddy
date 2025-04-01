@@ -1,5 +1,4 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { decode as base64Decode } from "https://deno.land/std@0.168.0/encoding/base64.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -53,8 +52,7 @@ serve(async (req) => {
               ]
             }
           ],
-          system: "You are a specialized tax document analyzer that extracts specific information from tax documents. Extract all requested information in a detailed, structured JSON format. If you cannot find a value, respond with \"null\" rather than \"Not found\". Focus on finding precise values for each requested field.",
-          response_format: { type: "json_object" }
+          system: "You are a specialized tax document analyzer that extracts specific information from tax documents. Extract all requested information in a detailed, structured JSON format. If you cannot find a value, respond with \"null\" rather than \"Not found\". Focus on finding precise values for each requested field."
         })
       });
 
@@ -103,7 +101,7 @@ serve(async (req) => {
   }
 });
 
-// Create more detailed prompts based on document type - keeping the same logic
+// Create more detailed prompts based on document type
 function createDetailedPrompt(doc) {
   const fileName = doc.name.toLowerCase();
   
@@ -253,7 +251,7 @@ function createDetailedPrompt(doc) {
   }
 }
 
-// Parse extracted JSON data into structured fields - keeping the same logic
+// Parse extracted JSON data into structured fields
 function parseExtractedData(doc, extractedData) {
   const fields = [];
   const fileName = doc.name.toLowerCase();
@@ -722,7 +720,7 @@ function parseExtractedData(doc, extractedData) {
   return fields;
 }
 
-// Legacy parsing function for backward compatibility - keeping the same logic
+// Legacy parsing function for backward compatibility
 function parseDocumentFields(doc, extractedText) {
   const fields = [];
   const fileName = doc.name.toLowerCase();
@@ -935,7 +933,7 @@ function parseDocumentFields(doc, extractedText) {
   return fields;
 }
 
-// Helper to extract values from potential JSON or text - keeping the same logic
+// Helper to extract values from potential JSON or text
 function extractValue(data, possibleKeys) {
   // If data is an object, try to find matching keys
   if (typeof data === 'object' && data !== null) {
@@ -974,7 +972,7 @@ function extractValue(data, possibleKeys) {
   return "Not found";
 }
 
-// Create a summary from extracted text - keeping the same logic
+// Create a summary from extracted text
 function summarizeDocument(data) {
   if (typeof data === 'object' && data !== null) {
     // Try to create a summary from available keys/values

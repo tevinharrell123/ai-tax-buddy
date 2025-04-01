@@ -53,7 +53,7 @@ const Welcome: React.FC = () => {
 
       dispatch({ 
         type: 'SET_EXTRACTED_FIELDS', 
-        payload: data.extractedFields 
+        payload: data.extractedFields || [] 
       });
       
       dispatch({ type: 'MARK_STEP_COMPLETED', payload: 1 });
@@ -69,26 +69,14 @@ const Welcome: React.FC = () => {
       });
     } catch (error) {
       console.error('Error processing documents:', error);
+      setShowAIModal(false);
       toast({
         title: "Processing Error",
         description: "There was an error processing your documents. Please try again.",
         variant: "destructive",
       });
-      setShowAIModal(false);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleNext = () => {
-    if (state.documents.length > 0) {
-      processDocuments();
-    } else {
-      toast({
-        title: "No Documents Found",
-        description: "Please upload at least one document to continue.",
-        variant: "destructive",
-      });
     }
   };
 
@@ -101,7 +89,7 @@ const Welcome: React.FC = () => {
     <Layout 
       showBackButton={false}
       disableNext={state.documents.length === 0 || loading}
-      onNext={handleNext}
+      onNext={processDocuments}
     >
       <div className="relative max-w-4xl mx-auto">
         <div className="absolute inset-0 bg-gradient-to-br from-purple-900/20 via-blue-800/10 to-transparent rounded-3xl blur-3xl -z-10"></div>

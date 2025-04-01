@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
 
@@ -54,8 +54,12 @@ const AIProcessingModal: React.FC<AIProcessingModalProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md" aria-describedby="ai-processing-description">
-        <DialogTitle className="sr-only">AI Document Processing</DialogTitle>
+      <DialogContent className="sm:max-w-md">
+        <DialogTitle className="text-xl font-semibold text-center">Claude AI Magic in Progress</DialogTitle>
+        <DialogDescription id="ai-processing-description" className="text-center">
+          Our Claude AI assistant is scanning your documents and extracting tax information. This will only take a moment...
+        </DialogDescription>
+        
         <div className="text-center p-6">
           <div className="flex justify-center mb-6">
             <div className="relative">
@@ -69,13 +73,8 @@ const AIProcessingModal: React.FC<AIProcessingModalProps> = ({
             </div>
           </div>
 
-          <h2 className="text-xl font-semibold mb-2">Claude AI Magic in Progress</h2>
-          <p id="ai-processing-description" className="text-gray-600 mb-6">
-            Our Claude AI assistant is scanning your documents and extracting tax information. This will only take a moment...
-          </p>
-
-          <Progress value={progress} className="h-2 mb-2" />
-          <p className="text-sm text-tax-blue">{progress}% Complete</p>
+          <Progress value={progress} className="h-2 mb-2" aria-labelledby="progress-label" />
+          <p id="progress-label" className="text-sm text-tax-blue">{progress}% Complete</p>
         </div>
       </DialogContent>
     </Dialog>
