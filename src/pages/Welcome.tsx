@@ -32,6 +32,15 @@ const Welcome: React.FC = () => {
   }, []);
 
   const processDocuments = async () => {
+    if (state.documents.length === 0) {
+      toast({
+        title: "No Documents Found",
+        description: "Please upload at least one document to continue.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     setShowAIModal(true);
     setLoading(true);
     
@@ -65,6 +74,7 @@ const Welcome: React.FC = () => {
         description: "There was an error processing your documents. Please try again.",
         variant: "destructive",
       });
+      setShowAIModal(false);
     } finally {
       setLoading(false);
     }
@@ -73,6 +83,12 @@ const Welcome: React.FC = () => {
   const handleNext = () => {
     if (state.documents.length > 0) {
       processDocuments();
+    } else {
+      toast({
+        title: "No Documents Found",
+        description: "Please upload at least one document to continue.",
+        variant: "destructive",
+      });
     }
   };
 

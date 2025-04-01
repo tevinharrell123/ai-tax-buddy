@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
 
@@ -54,7 +54,8 @@ const AIProcessingModal: React.FC<AIProcessingModalProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md" aria-describedby="ai-processing-description">
+        <DialogTitle className="sr-only">AI Document Processing</DialogTitle>
         <div className="text-center p-6">
           <div className="flex justify-center mb-6">
             <div className="relative">
@@ -69,7 +70,7 @@ const AIProcessingModal: React.FC<AIProcessingModalProps> = ({
           </div>
 
           <h2 className="text-xl font-semibold mb-2">Claude AI Magic in Progress</h2>
-          <p className="text-gray-600 mb-6">
+          <p id="ai-processing-description" className="text-gray-600 mb-6">
             Our Claude AI assistant is scanning your documents and extracting tax information. This will only take a moment...
           </p>
 

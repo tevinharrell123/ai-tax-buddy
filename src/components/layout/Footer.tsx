@@ -48,7 +48,7 @@ const Footer: React.FC<FooterProps> = ({
             >
               {step === 1 ? (
                 <>
-                  <span>Scan with AI</span>
+                  <span>Scan with Claude AI</span>
                   <Sparkles size={16} className="ml-1" />
                 </>
               ) : (

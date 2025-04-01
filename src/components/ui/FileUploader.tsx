@@ -1,21 +1,18 @@
+
 import React, { useState, useRef } from 'react';
 import { Upload, File, X, Check, FileText, CreditCard, FileImage, FileCog } from 'lucide-react';
 import { useTaxOrganizer } from '../../context/TaxOrganizerContext';
 import { supabase } from '@/integrations/supabase/client';
 import { v4 as uuidv4 } from 'uuid';
 import { useToast } from '@/hooks/use-toast';
-import AIProcessingModal from './AIProcessingModal';
-import { useNavigate } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const FileUploader: React.FC = () => {
   const { state, dispatch } = useTaxOrganizer();
   const [isDragging, setIsDragging] = useState(false);
-  const [isProcessing, setIsProcessing] = useState(false);
   const [activeCategory, setActiveCategory] = useState<string>("identification");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
-  const navigate = useNavigate();
 
   const documentCategories = [
     { 
@@ -263,70 +260,6 @@ const FileUploader: React.FC = () => {
     dispatch({ type: 'REMOVE_DOCUMENT', payload: id });
   };
 
-  const processDocuments = async () => {
-    if (state.documents.length === 0) {
-      toast({
-        title: "No Documents Found",
-        description: "Please upload at least one document to continue.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    try {
-      setIsProcessing(true);
-      
-      const docs = state.documents.map(doc => ({
-        id: doc.id,
-        name: doc.name,
-        type: doc.type,
-        status: doc.status
-      }));
-      
-      const { data, error } = await supabase.functions.invoke('extract-document-info', {
-        body: { documents: docs }
-      });
-      
-      if (error) {
-        console.error('Error processing documents:', error);
-        toast({
-          title: "Processing Error",
-          description: "There was a problem extracting information from your documents.",
-          variant: "destructive"
-        });
-        return;
-      }
-      
-      if (data && data.extractedFields) {
-        dispatch({ 
-          type: 'SET_EXTRACTED_FIELDS', 
-          payload: data.extractedFields 
-        });
-        
-        dispatch({ type: 'MARK_STEP_COMPLETED', payload: 1 });
-        
-        dispatch({ type: 'SET_STEP', payload: 2 });
-        
-        navigate('/review');
-        
-        toast({
-          title: "Processing Complete",
-          description: "Your documents have been successfully analyzed.",
-          variant: "success"
-        });
-      }
-    } catch (error) {
-      console.error('Document processing error:', error);
-      toast({
-        title: "Processing Error",
-        description: "An unexpected error occurred while processing your documents.",
-        variant: "destructive"
-      });
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
   const triggerFileInputClick = () => {
     if (fileInputRef.current) {
       fileInputRef.current.click();
@@ -452,24 +385,6 @@ const FileUploader: React.FC = () => {
           </TabsContent>
         ))}
       </Tabs>
-
-      {state.documents.length > 0 && (
-        <div className="flex justify-end">
-          <button
-            onClick={processDocuments}
-            disabled={state.documents.length === 0 || state.documents.some(d => d.status === 'uploading')}
-            className="bg-tax-green hover:bg-green-600 text-white px-6 py-3 rounded-lg font-medium flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <FileText size={18} className="mr-2" />
-            Analyze Documents
-          </button>
-        </div>
-      )}
-
-      <AIProcessingModal 
-        open={isProcessing} 
-        onOpenChange={setIsProcessing} 
-      />
     </div>
   );
 };
