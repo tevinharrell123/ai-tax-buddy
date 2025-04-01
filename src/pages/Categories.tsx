@@ -17,13 +17,13 @@ const Categories: React.FC = () => {
   useEffect(() => {
     // Initialize categories if not already done
     if (state.categories.length === 0) {
-      taxCategories.forEach(category => {
-        dispatch({ type: 'TOGGLE_CATEGORY', payload: category.id });
+      // Import all categories first
+      dispatch({ 
+        type: 'SET_CATEGORIES', 
+        payload: taxCategories 
       });
-    }
-    
-    // Initialize questions
-    if (state.questions.length === 0) {
+      
+      // Then initialize questions
       taxQuestions.forEach(question => {
         dispatch({ 
           type: 'ANSWER_QUESTION', 
@@ -132,6 +132,9 @@ const Categories: React.FC = () => {
     }
   };
   
+  // Debug log to check categories state
+  console.log("Categories state:", state.categories);
+  
   return (
     <Layout>
       <div className="max-w-5xl mx-auto">
@@ -142,18 +145,14 @@ const Categories: React.FC = () => {
           </p>
         </AnimatedCard>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {taxCategories.map((category, index) => {
-            // Find the category in state to get the current selected status
-            const stateCategory = state.categories.find(c => c.id === category.id);
-            const isSelected = stateCategory?.selected || false;
-            
-            return (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {state.categories.length > 0 ? (
+            state.categories.map((category, index) => (
               <AnimatedCard 
                 key={category.id} 
                 delay={200 + index * 100}
                 className={`category-item cursor-pointer transition-all duration-300 transform hover:scale-105 ${
-                  isSelected 
+                  category.selected 
                     ? 'border-2 border-tax-blue bg-tax-lightBlue shadow-md' 
                     : 'border hover:border-tax-blue hover:shadow-lg'
                 }`}
@@ -164,14 +163,14 @@ const Categories: React.FC = () => {
                 >
                   <div className="flex justify-between items-start">
                     <div className={`p-3 rounded-lg transition-all duration-300 ${
-                      isSelected 
+                      category.selected 
                         ? 'bg-tax-blue text-white' 
                         : 'bg-gray-100 text-gray-500'
                     }`}>
                       {getIconForCategory(category.icon)}
                     </div>
                     
-                    {isSelected && (
+                    {category.selected && (
                       <div className="bg-white text-tax-blue border border-tax-blue rounded-full p-1 animate-bounce-gentle">
                         <Check size={16} />
                       </div>
@@ -190,75 +189,72 @@ const Categories: React.FC = () => {
                   )}
                 </div>
                 
-                {isSelected && category.subcategories && (
+                {category.selected && category.subcategories && (
                   <div className="border-t px-4 py-3 bg-white animate-fade-in">
                     <h4 className="text-sm font-medium mb-2">Select what applies to you:</h4>
                     <div className="space-y-2">
-                      {category.subcategories.map(sub => {
-                        // Find the subcategory in state
-                        const stateSubcategory = stateCategory?.subcategories?.find(s => s.id === sub.id);
-                        const isSubSelected = stateSubcategory?.selected || false;
-                        const quantity = stateSubcategory?.quantity || 1;
-                        
-                        return (
-                          <div 
-                            key={sub.id}
-                            className="flex items-center justify-between text-sm border-b border-gray-100 pb-2"
-                          >
-                            <div className="flex items-center">
-                              <div 
-                                className={`w-5 h-5 rounded-md mr-2 flex items-center justify-center border cursor-pointer transition-all duration-200 ${
-                                  isSubSelected 
-                                    ? 'bg-tax-blue border-tax-blue text-white scale-110' 
-                                    : 'border-gray-300 hover:border-tax-blue'
-                                }`}
+                      {category.subcategories.map(sub => (
+                        <div 
+                          key={sub.id}
+                          className="flex items-center justify-between text-sm border-b border-gray-100 pb-2"
+                        >
+                          <div className="flex items-center">
+                            <div 
+                              className={`w-5 h-5 rounded-md mr-2 flex items-center justify-center border cursor-pointer transition-all duration-200 ${
+                                sub.selected 
+                                  ? 'bg-tax-blue border-tax-blue text-white scale-110' 
+                                  : 'border-gray-300 hover:border-tax-blue'
+                              }`}
+                              onClick={(e) => {
+                                e.stopPropagation(); // Prevent category toggle
+                                toggleSubcategory(category.id, sub.id);
+                              }}
+                            >
+                              {sub.selected && <Check size={12} />}
+                            </div>
+                            <span>{sub.name}</span>
+                          </div>
+                          
+                          {sub.selected && (
+                            <div className="flex items-center space-x-1">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-7 w-7 p-0"
                                 onClick={(e) => {
-                                  e.stopPropagation(); // Prevent category toggle
-                                  toggleSubcategory(category.id, sub.id);
+                                  e.stopPropagation();
+                                  updateQuantity(category.id, sub.id, -1);
                                 }}
                               >
-                                {isSubSelected && <Check size={12} />}
-                              </div>
-                              <span>{sub.name}</span>
+                                <Minus size={14} />
+                              </Button>
+                              <span className="w-6 text-center font-medium">{sub.quantity || 1}</span>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-7 w-7 p-0"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  updateQuantity(category.id, sub.id, 1);
+                                }}
+                              >
+                                <Plus size={14} />
+                              </Button>
+                              <ChevronRight size={16} className="ml-1 text-gray-400" />
                             </div>
-                            
-                            {isSubSelected && (
-                              <div className="flex items-center space-x-1">
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  className="h-7 w-7 p-0"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    updateQuantity(category.id, sub.id, -1);
-                                  }}
-                                >
-                                  <Minus size={14} />
-                                </Button>
-                                <span className="w-6 text-center font-medium">{quantity}</span>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  className="h-7 w-7 p-0"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    updateQuantity(category.id, sub.id, 1);
-                                  }}
-                                >
-                                  <Plus size={14} />
-                                </Button>
-                                <ChevronRight size={16} className="ml-1 text-gray-400" />
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
+                          )}
+                        </div>
+                      ))}
                     </div>
                   </div>
                 )}
               </AnimatedCard>
-            );
-          })}
+            ))
+          ) : (
+            <div className="col-span-3 text-center py-10">
+              <p>Loading categories...</p>
+            </div>
+          )}
         </div>
         
         <div className="mt-8 bg-tax-lightBlue rounded-lg p-6">

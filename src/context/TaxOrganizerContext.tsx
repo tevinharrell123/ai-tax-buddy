@@ -80,6 +80,7 @@ type Action =
   | { type: 'REMOVE_DOCUMENT'; payload: string }
   | { type: 'SET_EXTRACTED_FIELDS'; payload: ExtractedField[] }
   | { type: 'UPDATE_EXTRACTED_FIELD'; payload: { id: string; updates: Partial<ExtractedField> } }
+  | { type: 'SET_CATEGORIES'; payload: TaxCategory[] }
   | { type: 'TOGGLE_CATEGORY'; payload: string }
   | { type: 'TOGGLE_SUBCATEGORY'; payload: { categoryId: string; subcategoryId: string } }
   | { type: 'UPDATE_SUBCATEGORY_QUANTITY'; payload: { categoryId: string; subcategoryId: string; quantity: number } }
@@ -145,6 +146,9 @@ const reducer = (state: TaxOrganizerState, action: Action): TaxOrganizerState =>
             : field
         )
       };
+      
+    case 'SET_CATEGORIES':
+      return { ...state, categories: action.payload };
     
     case 'TOGGLE_CATEGORY':
       return {
