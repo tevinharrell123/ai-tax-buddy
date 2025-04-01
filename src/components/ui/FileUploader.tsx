@@ -78,52 +78,57 @@ const FileUploader: React.FC = () => {
   };
 
   const uploadFileToSupabase = async (file: File, documentId: string, category: string) => {
-    const { data: sessionData } = await supabase.auth.getSession();
-    if (!sessionData.session) {
-      console.error('No authenticated user found');
-      toast({
-        title: "Authentication Error",
-        description: "You must be logged in to upload documents.",
-        variant: "destructive",
-      });
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData.session) {
+        console.error('No authenticated user found');
+        toast({
+          title: "Authentication Error",
+          description: "You must be logged in to upload documents.",
+          variant: "destructive",
+        });
+        return null;
+      }
+
+      const userId = sessionData.session.user.id;
+      const fileExt = file.name.split('.').pop();
+      const filePath = `${userId}/${documentId}.${fileExt}`;
+
+      const { data, error } = await supabase.storage
+        .from('tax_documents')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      if (error) {
+        console.error('Error uploading file:', error);
+        return null;
+      }
+
+      const { error: dbError } = await supabase
+        .from('documents')
+        .insert({
+          id: documentId,
+          user_id: userId,
+          name: file.name,
+          file_path: filePath,
+          file_type: file.type,
+          status: 'uploaded',
+          category: category
+        });
+
+      if (dbError) {
+        console.error('Error saving document to database:', dbError);
+        await supabase.storage.from('tax_documents').remove([filePath]);
+        return null;
+      }
+
+      return data.path;
+    } catch (error) {
+      console.error('Unexpected error during upload:', error);
       return null;
     }
-
-    const userId = sessionData.session.user.id;
-    const fileExt = file.name.split('.').pop();
-    const filePath = `${userId}/${documentId}.${fileExt}`;
-
-    const { data, error } = await supabase.storage
-      .from('tax_documents')
-      .upload(filePath, file, {
-        cacheControl: '3600',
-        upsert: false
-      });
-
-    if (error) {
-      console.error('Error uploading file:', error);
-      return null;
-    }
-
-    const { error: dbError } = await supabase
-      .from('documents')
-      .insert({
-        id: documentId,
-        user_id: userId,
-        name: file.name,
-        file_path: filePath,
-        file_type: file.type,
-        status: 'uploaded',
-        category: category
-      });
-
-    if (dbError) {
-      console.error('Error saving document to database:', dbError);
-      await supabase.storage.from('tax_documents').remove([filePath]);
-      return null;
-    }
-
-    return data.path;
   };
 
   const handleFiles = (files: FileList, category: string) => {
