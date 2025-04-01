@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState, useCallback } from 'react';
 import { useTaxOrganizer } from '../context/TaxOrganizerContext';
 import Layout from '../components/layout/Layout';
@@ -31,6 +30,18 @@ interface CustomQuestion {
   followUpQuestions?: {
     [answer: string]: CustomQuestion[];
   };
+}
+
+interface Question {
+  id: string;
+  text: string;
+  categoryId: string;
+  options: string[];
+  missingDocument?: MissingDocument | null;
+  followUpQuestions?: {
+    [answer: string]: CustomQuestion[];
+  };
+  answer?: string;
 }
 
 const Questions: React.FC = () => {
@@ -258,6 +269,13 @@ const Questions: React.FC = () => {
     return expandedQuestions.has(questionId);
   };
 
+  const convertToQuestions = (customQuestions: CustomQuestion[]): Question[] => {
+    return customQuestions.map(q => ({
+      ...q,
+      answer: q.answer || null,
+    }));
+  };
+
   return (
     <Layout>
       <div className="max-w-3xl mx-auto relative">
@@ -307,130 +325,16 @@ const Questions: React.FC = () => {
               </Button>
             </div>
           ) : currentQuestion ? (
-            <AnimatedCard key={currentQuestion.id} className="min-h-[300px] flex flex-col">
-              <div className="flex-1">
-                <div className="text-sm text-tax-blue font-medium mb-2">
-                  {state.categories.find(c => c.id === currentQuestion.categoryId)?.name || 'General'}
-                </div>
-                
-                <h2 className="text-xl font-bold mb-6">{currentQuestion.text}</h2>
-                
-                {currentQuestion.missingDocument && (
-                  <div className="mb-6 p-4 border border-amber-200 bg-amber-50 rounded-lg">
-                    <div className="flex items-start">
-                      <AlertCircle className="h-5 w-5 text-amber-500 mr-2 mt-0.5" />
-                      <div>
-                        <h3 className="font-medium text-amber-800">Missing Document: {currentQuestion.missingDocument.name}</h3>
-                        <p className="text-sm text-amber-700">{currentQuestion.missingDocument.description}</p>
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          className="mt-2 text-amber-800 border-amber-300 hover:bg-amber-100"
-                          onClick={handleUploadMissingDocument}
-                        >
-                          <Upload className="h-4 w-4 mr-1" />
-                          Upload Document
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                )}
-                
-                <div className="space-y-3 mb-6">
-                  {currentQuestion.options?.map(option => {
-                    const isSelected = state.questions.find(
-                      q => q.id === currentQuestion.id
-                    )?.answer === option;
-                    
-                    const hasFollowUps = currentQuestion.followUpQuestions?.[option]?.length > 0;
-                    
-                    return (
-                      <div key={option} className="flex flex-col">
-                        <button
-                          onClick={() => handleAnswer(currentQuestion.id, option)}
-                          className={`w-full text-left p-4 rounded-lg border-2 transition-all ${
-                            isSelected 
-                              ? 'border-tax-blue bg-tax-lightBlue' 
-                              : 'border-gray-200 hover:border-gray-300'
-                          }`}
-                        >
-                          <div className="flex items-center justify-between">
-                            <span className="font-medium">{option}</span>
-                            <div className="flex items-center">
-                              {hasFollowUps && isSelected && (
-                                <span className="text-xs bg-tax-blue text-white px-2 py-0.5 rounded-full mr-2">
-                                  Follow-up
-                                </span>
-                              )}
-                              {isSelected && (
-                                <div className="bg-tax-blue text-white rounded-full p-1">
-                                  <Check size={16} />
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        </button>
-                        
-                        {/* Show follow-up questions if this option is selected */}
-                        {isSelected && 
-                         hasFollowUps && 
-                         isQuestionExpanded(currentQuestion.id) && 
-                         displayedFollowUps[currentQuestion.id] && (
-                          <FollowUpQuestions 
-                            questions={getQuestionFollowUps(currentQuestion.id)} 
-                            onAnswer={handleAnswer}
-                            parentAnswers={parentAnswers}
-                          />
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-              
-              <div className="flex justify-between items-center pt-4 border-t">
-                <button
-                  onClick={() => navigateQuestion('prev')}
-                  disabled={activeQuestion === 0}
-                  className={`flex items-center gap-1 px-4 py-2 rounded-lg transition-all ${
-                    activeQuestion === 0 
-                      ? 'text-gray-300 cursor-not-allowed' 
-                      : 'text-gray-600 hover:bg-gray-100'
-                  }`}
-                >
-                  <ChevronLeft size={16} />
-                  Previous
-                </button>
-                
-                <div className="flex space-x-1">
-                  {customQuestions.map((_, idx) => (
-                    <div 
-                      key={idx}
-                      className={`w-2 h-2 rounded-full ${
-                        idx === activeQuestion 
-                          ? 'bg-tax-blue' 
-                          : idx < activeQuestion 
-                            ? 'bg-tax-green' 
-                            : 'bg-gray-200'
-                      }`}
-                    />
-                  ))}
-                </div>
-                
-                <button
-                  onClick={() => navigateQuestion('next')}
-                  disabled={activeQuestion === customQuestions.length - 1}
-                  className={`flex items-center gap-1 px-4 py-2 rounded-lg transition-all ${
-                    activeQuestion === customQuestions.length - 1 
-                      ? 'text-gray-300 cursor-not-allowed' 
-                      : 'text-gray-600 hover:bg-gray-100'
-                  }`}
-                >
-                  Next
-                  <ChevronRight size={16} />
-                </button>
-              </div>
-            </AnimatedCard>
+            <QuestionCard
+              question={currentQuestion}
+              categoryName={state.categories.find(c => c.id === currentQuestion.categoryId)?.name}
+              onAnswer={handleAnswer}
+              isExpanded={isQuestionExpanded(currentQuestion.id)}
+              followUpQuestions={getQuestionFollowUps(currentQuestion.id)}
+              parentAnswers={parentAnswers}
+              currentAnswer={state.questions.find(q => q.id === currentQuestion.id)?.answer}
+              onUploadMissingDocument={handleUploadMissingDocument}
+            />
           ) : (
             <div className="flex flex-col items-center justify-center py-12 bg-white rounded-xl shadow">
               <AlertCircle className="h-10 w-10 text-amber-500" />

@@ -16,6 +16,7 @@ interface CustomQuestion {
   text: string;
   categoryId: string;
   options: string[];
+  answer?: string | null; // Added answer field to match Question type
   missingDocument?: MissingDocument | null;
   followUpQuestions?: {
     [answer: string]: CustomQuestion[];
@@ -43,6 +44,12 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
   currentAnswer,
   onUploadMissingDocument
 }) => {
+  // Convert CustomQuestion[] to Question[] for the FollowUpQuestions component
+  const convertedFollowUps: Question[] = followUpQuestions.map(q => ({
+    ...q,
+    answer: q.answer || null,
+  }));
+
   return (
     <AnimatedCard key={question.id} className="min-h-[300px] flex flex-col">
       <div className="flex-1">
@@ -109,9 +116,9 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
                 {isSelected && 
                  hasFollowUps && 
                  isExpanded && 
-                 followUpQuestions.length > 0 && (
+                 convertedFollowUps.length > 0 && (
                   <FollowUpQuestions 
-                    questions={followUpQuestions} 
+                    questions={convertedFollowUps} 
                     onAnswer={onAnswer}
                     parentAnswers={parentAnswers}
                   />
