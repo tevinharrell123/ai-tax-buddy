@@ -10,11 +10,11 @@ export const taxCategories: TaxCategory[] = [
     description: 'Employment, investments, and other sources of income',
     badge: null,
     subcategories: [
-      { id: 'w2', name: 'W-2 Employment', selected: false },
-      { id: 'freelance', name: 'Freelance / 1099', selected: false },
-      { id: 'investments', name: 'Investment Income', selected: false },
-      { id: 'retirement', name: 'Retirement Income', selected: false },
-      { id: 'rental', name: 'Rental Income', selected: false },
+      { id: 'w2', name: 'W-2 Employment', selected: false, quantity: 1 },
+      { id: 'freelance', name: 'Freelance / 1099', selected: false, quantity: 1 },
+      { id: 'investments', name: 'Investment Income', selected: false, quantity: 1 },
+      { id: 'retirement', name: 'Retirement Income', selected: false, quantity: 1 },
+      { id: 'rental', name: 'Rental Income', selected: false, quantity: 1 },
     ]
   },
   {
@@ -25,11 +25,11 @@ export const taxCategories: TaxCategory[] = [
     description: 'Tax deductions that may reduce your taxable income',
     badge: null,
     subcategories: [
-      { id: 'mortgage', name: 'Mortgage Interest', selected: false },
-      { id: 'charity', name: 'Charitable Donations', selected: false },
-      { id: 'medical', name: 'Medical Expenses', selected: false },
-      { id: 'education', name: 'Education Expenses', selected: false },
-      { id: 'business', name: 'Business Expenses', selected: false },
+      { id: 'mortgage', name: 'Mortgage Interest', selected: false, quantity: 1 },
+      { id: 'charity', name: 'Charitable Donations', selected: false, quantity: 1 },
+      { id: 'medical', name: 'Medical Expenses', selected: false, quantity: 1 },
+      { id: 'education', name: 'Education Expenses', selected: false, quantity: 1 },
+      { id: 'business', name: 'Business Expenses', selected: false, quantity: 1 },
     ]
   },
   {
@@ -40,10 +40,10 @@ export const taxCategories: TaxCategory[] = [
     description: 'Tax credits that may reduce your tax bill directly',
     badge: null,
     subcategories: [
-      { id: 'child', name: 'Child Tax Credit', selected: false },
-      { id: 'education_credit', name: 'Education Credits', selected: false },
-      { id: 'energy', name: 'Energy Credits', selected: false },
-      { id: 'eitc', name: 'Earned Income Credit', selected: false },
+      { id: 'child', name: 'Child Tax Credit', selected: false, quantity: 1 },
+      { id: 'education_credit', name: 'Education Credits', selected: false, quantity: 1 },
+      { id: 'energy', name: 'Energy Credits', selected: false, quantity: 1 },
+      { id: 'eitc', name: 'Earned Income Credit', selected: false, quantity: 1 },
     ]
   },
   {
@@ -54,9 +54,9 @@ export const taxCategories: TaxCategory[] = [
     description: 'Family-related tax situations and dependents',
     badge: null,
     subcategories: [
-      { id: 'dependents', name: 'Dependents', selected: false },
-      { id: 'childcare', name: 'Child Care Expenses', selected: false },
-      { id: 'adoption', name: 'Adoption', selected: false },
+      { id: 'dependents', name: 'Dependents', selected: false, quantity: 1 },
+      { id: 'childcare', name: 'Child Care Expenses', selected: false, quantity: 1 },
+      { id: 'adoption', name: 'Adoption', selected: false, quantity: 1 },
     ]
   },
   {
@@ -67,9 +67,9 @@ export const taxCategories: TaxCategory[] = [
     description: 'Home ownership, sale, or rental property',
     badge: null,
     subcategories: [
-      { id: 'homeowner', name: 'Homeowner', selected: false },
-      { id: 'sale', name: 'Home Sale', selected: false },
-      { id: 'improvements', name: 'Home Improvements', selected: false },
+      { id: 'homeowner', name: 'Homeowner', selected: false, quantity: 1 },
+      { id: 'sale', name: 'Home Sale', selected: false, quantity: 1 },
+      { id: 'improvements', name: 'Home Improvements', selected: false, quantity: 1 },
     ]
   },
   {
@@ -80,9 +80,9 @@ export const taxCategories: TaxCategory[] = [
     description: 'Health insurance and medical expenses',
     badge: null,
     subcategories: [
-      { id: 'insurance', name: 'Health Insurance', selected: false },
-      { id: 'hsa', name: 'HSA Contributions', selected: false },
-      { id: 'medical_expenses', name: 'Medical Expenses', selected: false },
+      { id: 'insurance', name: 'Health Insurance', selected: false, quantity: 1 },
+      { id: 'hsa', name: 'HSA Contributions', selected: false, quantity: 1 },
+      { id: 'medical_expenses', name: 'Medical Expenses', selected: false, quantity: 1 },
     ]
   },
   {
@@ -93,9 +93,9 @@ export const taxCategories: TaxCategory[] = [
     description: 'Stocks, cryptocurrency, and other investments',
     badge: null,
     subcategories: [
-      { id: 'stocks', name: 'Stocks & Bonds', selected: false },
-      { id: 'crypto', name: 'Cryptocurrency', selected: false },
-      { id: 'retirement_accounts', name: 'Retirement Accounts', selected: false },
+      { id: 'stocks', name: 'Stocks & Bonds', selected: false, quantity: 1 },
+      { id: 'crypto', name: 'Cryptocurrency', selected: false, quantity: 1 },
+      { id: 'retirement_accounts', name: 'Retirement Accounts', selected: false, quantity: 1 },
     ]
   },
   {
@@ -106,9 +106,9 @@ export const taxCategories: TaxCategory[] = [
     description: 'Self-employment and business-related taxes',
     badge: null,
     subcategories: [
-      { id: 'self_employed', name: 'Self-Employed', selected: false },
-      { id: 'business_expenses', name: 'Business Expenses', selected: false },
-      { id: 'home_office', name: 'Home Office', selected: false },
+      { id: 'self_employed', name: 'Self-Employed', selected: false, quantity: 1 },
+      { id: 'business_expenses', name: 'Business Expenses', selected: false, quantity: 1 },
+      { id: 'home_office', name: 'Home Office', selected: false, quantity: 1 },
     ]
   },
 ];

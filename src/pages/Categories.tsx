@@ -4,10 +4,12 @@ import { useTaxOrganizer } from '../context/TaxOrganizerContext';
 import Layout from '../components/layout/Layout';
 import AnimatedCard from '../components/ui/AnimatedCard';
 import { 
-  DollarSign, MinusCircle, Gift, Users, Home, Heart, TrendingUp, Briefcase, Check
+  DollarSign, MinusCircle, Gift, Users, Home, Heart, TrendingUp, Briefcase, Check,
+  Plus, Minus, ChevronRight
 } from 'lucide-react';
 import { taxCategories, taxQuestions } from '../data/taxCategories';
 import { toast } from '@/components/ui/use-toast';
+import { Button } from '@/components/ui/button';
 
 const Categories: React.FC = () => {
   const { state, dispatch } = useTaxOrganizer();
@@ -66,7 +68,7 @@ const Categories: React.FC = () => {
         // If the category is being selected
         toast({
           title: `${category.name} Selected`,
-          description: "You can now select specific items that apply to you.",
+          description: "You can now specify how many items apply to you.",
           variant: "default",
         });
         
@@ -108,6 +110,27 @@ const Categories: React.FC = () => {
       });
     }
   };
+
+  const updateQuantity = (categoryId: string, subcategoryId: string, change: number) => {
+    const category = state.categories.find(c => c.id === categoryId);
+    const subcategory = category?.subcategories?.find(s => s.id === subcategoryId);
+    
+    if (subcategory) {
+      const currentQuantity = subcategory.quantity || 1;
+      const newQuantity = Math.max(1, currentQuantity + change); // Ensure quantity is at least 1
+      
+      dispatch({
+        type: 'UPDATE_SUBCATEGORY_QUANTITY',
+        payload: { categoryId, subcategoryId, quantity: newQuantity }
+      });
+      
+      toast({
+        title: `${subcategory.name} Updated`,
+        description: `Quantity set to ${newQuantity}`,
+        variant: "default",
+      });
+    }
+  };
   
   return (
     <Layout>
@@ -115,7 +138,7 @@ const Categories: React.FC = () => {
         <AnimatedCard delay={100} className="text-center mb-8">
           <h1 className="text-2xl font-bold mb-2 text-gray-800">Select Your Tax Categories</h1>
           <p className="text-gray-600">
-            Choose the tax categories that apply to you. We'll use this to ask more specific questions later.
+            Choose the tax categories that apply to you and specify how many of each item you have.
           </p>
         </AnimatedCard>
         
@@ -175,26 +198,58 @@ const Categories: React.FC = () => {
                         // Find the subcategory in state
                         const stateSubcategory = stateCategory?.subcategories?.find(s => s.id === sub.id);
                         const isSubSelected = stateSubcategory?.selected || false;
+                        const quantity = stateSubcategory?.quantity || 1;
                         
                         return (
                           <div 
                             key={sub.id}
-                            className="flex items-center text-sm"
+                            className="flex items-center justify-between text-sm border-b border-gray-100 pb-2"
                           >
-                            <div 
-                              className={`w-5 h-5 rounded-md mr-2 flex items-center justify-center border cursor-pointer transition-all duration-200 ${
-                                isSubSelected 
-                                  ? 'bg-tax-blue border-tax-blue text-white scale-110' 
-                                  : 'border-gray-300 hover:border-tax-blue'
-                              }`}
-                              onClick={(e) => {
-                                e.stopPropagation(); // Prevent category toggle
-                                toggleSubcategory(category.id, sub.id);
-                              }}
-                            >
-                              {isSubSelected && <Check size={12} />}
+                            <div className="flex items-center">
+                              <div 
+                                className={`w-5 h-5 rounded-md mr-2 flex items-center justify-center border cursor-pointer transition-all duration-200 ${
+                                  isSubSelected 
+                                    ? 'bg-tax-blue border-tax-blue text-white scale-110' 
+                                    : 'border-gray-300 hover:border-tax-blue'
+                                }`}
+                                onClick={(e) => {
+                                  e.stopPropagation(); // Prevent category toggle
+                                  toggleSubcategory(category.id, sub.id);
+                                }}
+                              >
+                                {isSubSelected && <Check size={12} />}
+                              </div>
+                              <span>{sub.name}</span>
                             </div>
-                            <span>{sub.name}</span>
+                            
+                            {isSubSelected && (
+                              <div className="flex items-center space-x-1">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-7 w-7 p-0"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    updateQuantity(category.id, sub.id, -1);
+                                  }}
+                                >
+                                  <Minus size={14} />
+                                </Button>
+                                <span className="w-6 text-center font-medium">{quantity}</span>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-7 w-7 p-0"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    updateQuantity(category.id, sub.id, 1);
+                                  }}
+                                >
+                                  <Plus size={14} />
+                                </Button>
+                                <ChevronRight size={16} className="ml-1 text-gray-400" />
+                              </div>
+                            )}
                           </div>
                         );
                       })}
@@ -214,7 +269,8 @@ const Categories: React.FC = () => {
             <div>
               <h3 className="font-medium text-gray-800">Tax Tip</h3>
               <p className="text-sm text-gray-600">
-                Selecting more categories helps ensure we cover all your tax situations. Don't worry if you're not sure — you can change these later.
+                For each selected item, indicate how many you have (e.g., 2 W-2 jobs, 3 rental properties).
+                This helps us generate more accurate tax information for you.
               </p>
             </div>
           </div>

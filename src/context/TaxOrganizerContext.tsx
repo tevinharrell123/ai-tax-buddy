@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useReducer, ReactNode } from 'react';
 
 export type TaxDocument = {
@@ -27,7 +28,12 @@ export type TaxCategory = {
   selected: boolean;
   description: string;
   badge: string | null;
-  subcategories?: { id: string; name: string; selected: boolean }[];
+  subcategories?: { 
+    id: string; 
+    name: string; 
+    selected: boolean;
+    quantity?: number;
+  }[];
 };
 
 export type Question = {
@@ -76,6 +82,7 @@ type Action =
   | { type: 'UPDATE_EXTRACTED_FIELD'; payload: { id: string; updates: Partial<ExtractedField> } }
   | { type: 'TOGGLE_CATEGORY'; payload: string }
   | { type: 'TOGGLE_SUBCATEGORY'; payload: { categoryId: string; subcategoryId: string } }
+  | { type: 'UPDATE_SUBCATEGORY_QUANTITY'; payload: { categoryId: string; subcategoryId: string; quantity: number } }
   | { type: 'ADD_HIGHLIGHT'; payload: TaxOrganizerState['highlights'][0] }
   | { type: 'REMOVE_HIGHLIGHT'; payload: string }
   | { type: 'ANSWER_QUESTION'; payload: { id: string; answer: string } }
@@ -158,7 +165,28 @@ const reducer = (state: TaxOrganizerState, action: Action): TaxOrganizerState =>
                 ...cat, 
                 subcategories: cat.subcategories?.map(sub => 
                   sub.id === action.payload.subcategoryId 
-                    ? { ...sub, selected: !sub.selected } 
+                    ? { 
+                        ...sub, 
+                        selected: !sub.selected,
+                        quantity: sub.selected ? undefined : sub.quantity || 1 // Initialize quantity when selected
+                      } 
+                    : sub
+                ) 
+              } 
+            : cat
+        )
+      };
+    
+    case 'UPDATE_SUBCATEGORY_QUANTITY':
+      return {
+        ...state,
+        categories: state.categories.map(cat => 
+          cat.id === action.payload.categoryId 
+            ? { 
+                ...cat, 
+                subcategories: cat.subcategories?.map(sub => 
+                  sub.id === action.payload.subcategoryId 
+                    ? { ...sub, quantity: action.payload.quantity } 
                     : sub
                 ) 
               } 
