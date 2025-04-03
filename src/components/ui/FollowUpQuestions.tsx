@@ -29,7 +29,10 @@ const FollowUpQuestions: React.FC<FollowUpQuestionsProps> = ({
   const [dependentName, setDependentName] = useState('');
   const [dependentBirthdate, setDependentBirthdate] = useState('');
   
-  if (!questions.length) return null;
+  // Return early with a fallback if questions is undefined or not an array
+  if (!questions || !Array.isArray(questions) || questions.length === 0) {
+    return null;
+  }
   
   const handleDependentSubmit = () => {
     if (dependentName && dependentBirthdate && activeDependentQuestion) {

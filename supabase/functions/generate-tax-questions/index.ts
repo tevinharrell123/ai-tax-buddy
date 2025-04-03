@@ -17,20 +17,16 @@ serve(async (req) => {
     const { 
       selectedCategories, 
       documents, 
-      extractedFields = [], 
-      categoryAnswers = [],
-      previousAnswers = [] 
+      extractedFields = []
     } = await req.json();
     
     console.log("Received request with:", { 
       categoriesCount: selectedCategories?.length || 0, 
       documentsCount: documents?.length || 0,
-      extractedFieldsCount: extractedFields?.length || 0,
-      categoryAnswersCount: categoryAnswers?.length || 0,
-      previousAnswersCount: previousAnswers?.length || 0
+      extractedFieldsCount: extractedFields?.length || 0
     });
 
-    // Generate default questions based on selected categories
+    // Generate local questions based on selected categories
     const questions = generateDefaultQuestions(selectedCategories, documents, extractedFields);
     
     console.log(`Generated ${questions.length} local questions`);
@@ -402,6 +398,16 @@ function generateDefaultQuestions(selectedCategories = [], documents = [], extra
         "formNumber": "1098-E",
         "requiredFor": "Student Loan Interest Deduction"
       }
+    });
+  }
+
+  // Add at least one question if none were generated
+  if (questions.length === 0) {
+    questions.push({
+      "id": generateId(),
+      "text": "What is your filing status for this tax year?",
+      "categoryId": "general",
+      "options": ["Single", "Married filing jointly", "Married filing separately", "Head of household", "Qualifying widow(er)"]
     });
   }
   

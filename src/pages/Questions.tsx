@@ -4,7 +4,6 @@ import { useTaxOrganizer } from '../context/TaxOrganizerContext';
 import Layout from '../components/layout/Layout';
 import AnimatedCard from '../components/ui/AnimatedCard';
 import { Check, ChevronRight, ChevronLeft, AlertCircle, Upload, Loader2, RefreshCw } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { v4 as uuidv4 } from 'uuid';
 import { Button } from '@/components/ui/button';
@@ -41,12 +40,10 @@ const Questions: React.FC = () => {
   const [parentAnswers] = useState(new Map<string, string>());
   const [displayedFollowUps, setDisplayedFollowUps] = useState<{[questionId: string]: CustomQuestion[]}>({});
   const [expandedQuestions, setExpandedQuestions] = useState<Set<string>>(new Set());
-  const [retryCount, setRetryCount] = useState(0);
-  const [isFetchFailed, setIsFetchFailed] = useState(false);
-  const [useLocalQuestions, setUseLocalQuestions] = useState(false);
   
-  // Generate local questions as a fallback
+  // Generate local questions
   const localQuestions = useMemo(() => {
+    console.log("Generating local questions");
     return generateLocalQuestions(
       state.categories,
       state.documents,
@@ -54,169 +51,76 @@ const Questions: React.FC = () => {
     );
   }, [state.categories, state.documents, state.extractedFields]);
 
-  const fetchPersonalizedQuestions = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
-    setIsFetchFailed(false);
-    
-    // Set a timeout to fall back to local questions if API takes too long
-    const timeoutId = setTimeout(() => {
-      console.log("API request timeout - using local questions generator");
-      setUseLocalQuestions(true);
-      setCustomQuestions(localQuestions);
-      setIsLoading(false);
-      
-      // Register all local questions in state
-      localQuestions.forEach(question => {
-        dispatch({ 
-          type: 'ANSWER_QUESTION', 
-          payload: { id: question.id, answer: '' } 
-        });
-      });
-      
-      toast({
-        title: "Using locally generated questions",
-        description: "Personalized questions are taking too long to load, so we've generated questions based on your selections.",
-        variant: "default",
-      });
-    }, 8000); // 8 second timeout
-
-    try {
-      if (useLocalQuestions) {
-        // Skip API call if we're already using local questions
-        setCustomQuestions(localQuestions);
-        setIsLoading(false);
-        return;
-      }
-      
-      // Get all selected categories with their subcategories
-      const selectedCategories = state.categories.filter(cat => cat.selected).map(category => {
-        // Include quantity information for subcategories
-        return {
-          ...category,
-          subcategories: category.subcategories?.filter(sub => sub.selected)
-        };
-      });
-      
-      // Format documents with more detail
-      const documents = state.documents.map(doc => ({
-        id: doc.id,
-        name: doc.name,
-        type: doc.type,
-        category: doc.category,
-        status: doc.status
-      }));
-
-      // Include extracted fields for context
-      const extractedFields = state.extractedFields.map(field => ({
-        id: field.id,
-        name: field.name,
-        value: field.value,
-        category: field.category
-      }));
-
-      // Create a mapping of category selections
-      const categoryAnswers = selectedCategories.map(cat => {
-        const subcategoriesInfo = cat.subcategories?.map(sub => ({
-          id: sub.id,
-          name: sub.name,
-          quantity: sub.quantity || 1
-        })) || [];
-        
-        return {
-          categoryId: cat.id,
-          categoryName: cat.name,
-          selected: true,
-          subcategories: subcategoriesInfo
-        };
-      });
-
-      // Include previous question answers
-      const previousAnswers = state.questions.map(q => ({
-        questionId: q.id,
-        questionText: q.text,
-        answer: q.answer,
-        categoryId: q.categoryId
-      })).filter(q => q.answer !== null && q.answer !== '');
-
-      const { data, error } = await supabase.functions.invoke('generate-tax-questions', {
-        body: { 
-          selectedCategories, 
-          documents, 
-          extractedFields,
-          categoryAnswers,
-          previousAnswers
-        }
-      });
-
-      // Clear the timeout since we got a response
-      clearTimeout(timeoutId);
-
-      if (error) {
-        console.error('Error calling generate-tax-questions:', error);
-        throw new Error(`Error calling generate-tax-questions: ${error.message}`);
-      }
-
-      if (data?.questions && Array.isArray(data.questions)) {
-        console.log("Received custom questions:", data.questions);
-        
-        const processedQuestions = data.questions.map(q => ({
-          ...q,
-          id: q.id || uuidv4()
-        }));
-        
-        if (processedQuestions.length === 0) {
-          console.log("No questions returned from API, using local questions");
-          setUseLocalQuestions(true);
-          setCustomQuestions(localQuestions);
-        } else {
-          setCustomQuestions(processedQuestions);
-        }
-        
-        // Register all questions in state
-        const questionsToRegister = processedQuestions.length > 0 ? processedQuestions : localQuestions;
-        questionsToRegister.forEach(question => {
-          dispatch({ 
-            type: 'ANSWER_QUESTION', 
-            payload: { id: question.id, answer: '' } 
-          });
-        });
-      } else {
-        throw new Error("Invalid response format from generate-tax-questions function");
-      }
-    } catch (err) {
-      console.error("Failed to fetch personalized questions:", err);
-      setError(`Failed to generate personalized questions. Using locally generated questions.`);
-      setIsFetchFailed(true);
-      setUseLocalQuestions(true);
-      
-      // Use local questions as fallback
-      setCustomQuestions(localQuestions);
-      
-      localQuestions.forEach(question => {
-        dispatch({ 
-          type: 'ANSWER_QUESTION', 
-          payload: { id: question.id, answer: '' } 
-        });
-      });
-      
-      // Show a toast notification
-      toast({
-        title: "Using locally generated questions",
-        description: "We couldn't connect to our AI service, so we've generated questions based on your selections.",
-        variant: "default",
-      });
-      
-      // Clear the timeout if we caught an error
-      clearTimeout(timeoutId);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [state.categories, state.documents, state.extractedFields, state.questions, dispatch, retryCount, localQuestions, useLocalQuestions, toast]);
-
+  // Always use local questions - avoid API call completely
   useEffect(() => {
-    fetchPersonalizedQuestions();
-  }, [fetchPersonalizedQuestions]);
+    const loadLocalQuestions = () => {
+      try {
+        console.log("Using local questions:", localQuestions);
+        
+        if (!localQuestions || localQuestions.length === 0) {
+          // If no local questions available, create some default ones
+          const defaultQuestions = [
+            {
+              id: uuidv4(),
+              text: "What is your filing status for this tax year?",
+              categoryId: "general",
+              options: ["Single", "Married filing jointly", "Married filing separately", "Head of household", "Qualifying widow(er)"]
+            },
+            {
+              id: uuidv4(),
+              text: "Did you have any dependents in the tax year?",
+              categoryId: "general",
+              options: ["No", "Yes, one dependent", "Yes, multiple dependents"]
+            }
+          ];
+          
+          setCustomQuestions(defaultQuestions);
+          
+          // Register default questions in state
+          defaultQuestions.forEach(question => {
+            dispatch({ 
+              type: 'ANSWER_QUESTION', 
+              payload: { id: question.id, answer: '' } 
+            });
+          });
+        } else {
+          setCustomQuestions(localQuestions);
+          
+          // Register all local questions in state
+          localQuestions.forEach(question => {
+            dispatch({ 
+              type: 'ANSWER_QUESTION', 
+              payload: { id: question.id, answer: '' } 
+            });
+          });
+        }
+      } catch (err) {
+        console.error("Error loading questions:", err);
+        setError("Error loading questions. Please try refreshing the page.");
+        
+        // Ensure we still have some questions to show
+        const fallbackQuestions = [
+          {
+            id: uuidv4(),
+            text: "What is your filing status for this tax year?",
+            categoryId: "general",
+            options: ["Single", "Married filing jointly", "Married filing separately", "Head of household", "Qualifying widow(er)"]
+          }
+        ];
+        
+        setCustomQuestions(fallbackQuestions);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    // Short timeout to give the impression that we're loading questions
+    const timer = setTimeout(() => {
+      loadLocalQuestions();
+    }, 1000);
+    
+    return () => clearTimeout(timer);
+  }, [localQuestions, dispatch]);
 
   const createConfetti = () => {
     setShowConfetti(true);
@@ -306,16 +210,27 @@ const Questions: React.FC = () => {
   };
 
   const handleRefreshQuestions = () => {
-    setRetryCount(prev => prev + 1);
     setActiveQuestion(0);
     setDisplayedFollowUps({});
     setExpandedQuestions(new Set());
-    setUseLocalQuestions(false); // Try API again
+    setIsLoading(true);
     
     toast({
       title: "Refreshing questions",
       description: "Generating new questions based on your selections.",
     });
+    
+    setTimeout(() => {
+      setCustomQuestions(localQuestions);
+      // Register all local questions in state
+      localQuestions.forEach(question => {
+        dispatch({ 
+          type: 'ANSWER_QUESTION', 
+          payload: { id: question.id, answer: '' } 
+        });
+      });
+      setIsLoading(false);
+    }, 1000);
   };
 
   const handleUploadMissingDocument = () => {
@@ -331,6 +246,11 @@ const Questions: React.FC = () => {
   };
 
   const currentQuestion = customQuestions[activeQuestion];
+  
+  // Safety check to ensure we don't try to access an invalid question
+  if (currentQuestion === undefined && customQuestions.length > 0 && activeQuestion >= customQuestions.length) {
+    setActiveQuestion(0);
+  }
   
   // Calculate answered count including follow-up questions
   const allQuestionIds = new Set<string>();
@@ -369,11 +289,6 @@ const Questions: React.FC = () => {
           <h1 className="text-2xl font-bold mb-2 text-gray-800">Personalized Tax Questions</h1>
           <p className="text-gray-600">
             Based on your tax situation, we have some specific questions to help maximize your refund.
-            {useLocalQuestions && !isLoading && (
-              <span className="block mt-1 text-xs text-amber-600">
-                Using locally generated questions based on your selections.
-              </span>
-            )}
           </p>
         </AnimatedCard>
         
