@@ -19,10 +19,10 @@ export const useLayoutNavigation = () => {
           navigate('/import-options');
           break;
         case 2:
-          navigate('/review');
+          navigate('/categories');
           break;
         case 3:
-          navigate('/categories');
+          navigate('/review');
           break;
         case 4:
           navigate('/questions');
@@ -51,10 +51,10 @@ export const useLayoutNavigation = () => {
           navigate('/import-options');
           break;
         case 4:
-          navigate('/review');
+          navigate('/categories');
           break;
         case 5:
-          navigate('/categories');
+          navigate('/review');
           break;
         case 6:
           navigate('/questions');
@@ -79,10 +79,10 @@ export const useLayoutNavigation = () => {
           navigate('/import-options');
           break;
         case 3:
-          navigate('/review');
+          navigate('/categories');
           break;
         case 4:
-          navigate('/categories');
+          navigate('/review');
           break;
         case 5:
           navigate('/questions');

@@ -41,17 +41,20 @@ const Layout: React.FC<LayoutProps> = ({
       case '/':
         currentStep = 1;
         break;
-      case '/review':
+      case '/import-options':
         currentStep = 2;
         break;
       case '/categories':
         currentStep = 3;
         break;
-      case '/questions':
+      case '/review':
         currentStep = 4;
         break;
-      case '/summary':
+      case '/questions':
         currentStep = 5;
+        break;
+      case '/summary':
+        currentStep = 6;
         break;
       default:
         break;

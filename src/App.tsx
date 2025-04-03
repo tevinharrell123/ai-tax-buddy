@@ -7,9 +7,9 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { TaxOrganizerProvider } from "./context/TaxOrganizerContext";
 import Welcome from "./pages/Welcome";
 import ImportOptions from "./pages/ImportOptions";
+import Categories from "./pages/Categories";
 import AIReview from "./pages/AIReview";
 import DocumentHighlight from "./pages/DocumentHighlight";
-import Categories from "./pages/Categories";
 import Questions from "./pages/Questions";
 import Summary from "./pages/Summary";
 import NotFound from "./pages/NotFound";
@@ -37,6 +37,11 @@ const App = () => (
                 <ImportOptions />
               </ProtectedRoute>
             } />
+            <Route path="/categories" element={
+              <ProtectedRoute>
+                <Categories />
+              </ProtectedRoute>
+            } />
             <Route path="/review" element={
               <ProtectedRoute>
                 <AIReview />
@@ -45,11 +50,6 @@ const App = () => (
             <Route path="/highlight" element={
               <ProtectedRoute>
                 <DocumentHighlight />
-              </ProtectedRoute>
-            } />
-            <Route path="/categories" element={
-              <ProtectedRoute>
-                <Categories />
               </ProtectedRoute>
             } />
             <Route path="/questions" element={

@@ -1,12 +1,13 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useTaxOrganizer } from '../context/TaxOrganizerContext';
 import Layout from '../components/layout/Layout';
 import AnimatedCard from '../components/ui/AnimatedCard';
 import { Button } from '@/components/ui/button';
 import { 
   DollarSign, MinusCircle, Gift, Users, Home, Heart, TrendingUp, Briefcase, Check,
-  Plus, Minus, ChevronRight
+  Plus, Minus, ChevronRight, Loader2
 } from 'lucide-react';
 import { taxCategories, taxQuestions } from '../data/taxCategories';
 import { toast } from '@/components/ui/use-toast';
@@ -15,9 +16,15 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { useToast } from "@/hooks/use-toast";
+import AIProcessingModal from '../components/ui/AIProcessingModal';
 
 const Categories: React.FC = () => {
   const { state, dispatch } = useTaxOrganizer();
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [showAIModal, setShowAIModal] = useState(false);
   
   useEffect(() => {
     // Initialize categories if not already done
@@ -124,8 +131,41 @@ const Categories: React.FC = () => {
     }
   };
   
+  const handleContinue = async () => {
+    // Check if any categories are selected
+    const hasSelectedCategories = state.categories.some(category => category.selected);
+    
+    if (!hasSelectedCategories) {
+      toast({
+        title: "No Categories Selected",
+        description: "Please select at least one tax category to continue.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Mark the current step as completed
+    dispatch({ type: 'MARK_STEP_COMPLETED', payload: state.step });
+    
+    // Show AI processing modal
+    setShowAIModal(true);
+    setIsProcessing(true);
+    
+    // Simulate AI processing documents
+    setTimeout(() => {
+      setIsProcessing(false);
+      setShowAIModal(false);
+      
+      // Navigate to review page
+      navigate('/review');
+    }, 3000);
+  };
+  
   return (
-    <Layout>
+    <Layout
+      onNext={handleContinue}
+      nextButtonText="Continue to Review"
+    >
       <div className="max-w-4xl mx-auto">
         <AnimatedCard delay={100} className="text-center mb-8">
           <h1 className="text-2xl font-bold mb-2">Select Your Tax Categories</h1>
@@ -258,6 +298,11 @@ const Categories: React.FC = () => {
           </div>
         </div>
       </div>
+      
+      <AIProcessingModal 
+        open={showAIModal} 
+        onOpenChange={setShowAIModal}
+      />
     </Layout>
   );
 };

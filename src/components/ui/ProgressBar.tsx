@@ -11,8 +11,8 @@ const ProgressBar: React.FC = () => {
   const steps = [
     { id: 1, name: 'Upload', path: '/' },
     { id: 2, name: 'Import', path: '/import-options' },
-    { id: 3, name: 'Review', path: '/review' },
-    { id: 4, name: 'Categories', path: '/categories' },
+    { id: 3, name: 'Categories', path: '/categories' },
+    { id: 4, name: 'Review', path: '/review' },
     { id: 5, name: 'Questions', path: '/questions' },
     { id: 6, name: 'Summary', path: '/summary' },
   ];
