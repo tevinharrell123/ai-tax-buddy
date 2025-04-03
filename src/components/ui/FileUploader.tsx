@@ -1,3 +1,4 @@
+
 import React, { useState, useRef } from 'react';
 import { Upload, File, X, Check, FileText, CreditCard } from 'lucide-react';
 import { useTaxOrganizer } from '../../context/TaxOrganizerContext';
@@ -18,9 +19,9 @@ const FileUploader: React.FC = () => {
       id: "identification", 
       name: "Identification", 
       description: "Driver's license, passport, or other ID", 
-      icon: <CreditCard className="text-tax-red" size={24} />, 
-      color: "bg-tax-lightRed border-tax-red/30",
-      activeColor: "bg-tax-red text-white"
+      icon: <CreditCard className="text-tax-blue" size={24} />, 
+      color: "bg-tax-lightBlue border-tax-blue/30",
+      activeColor: "bg-tax-blue text-white"
     },
     { 
       id: "tax-forms", 
