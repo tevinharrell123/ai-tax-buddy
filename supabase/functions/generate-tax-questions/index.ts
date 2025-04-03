@@ -31,176 +31,15 @@ serve(async (req) => {
     });
 
     // Generate default questions based on selected categories
-    const defaultQuestions = generateDefaultQuestions(selectedCategories, documents, extractedFields);
-
-    try {
-      // Try to get AI-generated questions if API key exists
-      const claudeApiKey = Deno.env.get('CLAUDE_API_KEY');
-      
-      if (!claudeApiKey) {
-        console.log("Claude API key not found, using default questions");
-        return new Response(
-          JSON.stringify({ questions: defaultQuestions }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-
-      // Format the context for Claude
-      let prompt = `You are an expert tax professional and AI assistant that generates personalized tax questions to help users maximize their tax returns. 
-      
-I'm going to provide you with detailed information about a taxpayer, including:
-1. Tax categories they've selected as relevant to their situation
-2. Documents they've already uploaded
-3. Information extracted from those documents
-4. Previous answers to tax-related questions
-5. Details about their selections
-
-Your task is to generate 3-5 HIGHLY RELEVANT AND SPECIFIC tax questions that will:
-- Help identify additional tax deductions or credits they qualify for
-- Determine if any critical tax documents are missing
-- Gather information necessary for maximizing their refund
-- Provide tailored follow-up questions based on their answers
-
-===== TAXPAYER INFORMATION =====
-
-Selected Categories (and subcategories):
-${JSON.stringify(selectedCategories, null, 2)}
-
-Uploaded Documents:
-${JSON.stringify(documents, null, 2)}
-
-Extracted Information from Documents:
-${JSON.stringify(extractedFields, null, 2)}
-
-Previous Category-Related Answers:
-${JSON.stringify(categoryAnswers, null, 2)}
-
-Previous Question Answers:
-${JSON.stringify(previousAnswers, null, 2)}
-
-===== IMPORTANT INSTRUCTIONS =====
-
-1. DO NOT ask questions that duplicate information we already have from their documents or previous answers.
-
-2. DO generate specific, personalized questions based on their exact tax situation.
-
-3. Focus on specific details that could lead to tax benefits, not general questions like "How many jobs did you have?"
-
-4. For any appropriate question, include detailed follow-up questions that appear when certain answers are selected.
-
-5. If you detect a missing tax document, specify exactly what document is missing, what form number it is, and why it's needed.
-
-6. Examples of GOOD questions:
-   - "Your W-2 shows you contributed $2,500 to your 401(k). Did you make any additional retirement contributions to an IRA?"
-   - "Based on your homeowner status, do you have mortgage interest statements (Form 1098) to claim the mortgage interest deduction?"
-   - "You indicated having a child. What is their age and did they attend college or childcare during the tax year?"
-
-7. Examples of BAD questions:
-   - "Did you have any income?" (Too vague, we already know from documents)
-   - "How many dependents do you have?" (If they already indicated this in categories)
-
-Output valid JSON in this format:
-[
-  {
-    "id": "question-uuid",
-    "text": "Question text here - be specific and personalized",
-    "categoryId": "related-category-id",
-    "options": ["Option 1", "Option 2", "Option 3"],
-    "missingDocument": null or { 
-      "name": "Document Name", 
-      "description": "Brief description of what this document is",
-      "formNumber": "1098", 
-      "requiredFor": "Mortgage Interest Deduction" 
-    },
-    "followUpQuestions": {
-      "Option 1": [
-        {
-          "id": "follow-up-question-uuid",
-          "text": "Follow-up question text here - be detailed",
-          "categoryId": "related-category-id",
-          "options": ["Option A", "Option B", "Option C"]
-        }
-      ]
-    }
-  }
-]`;
-
-      console.log("Sending request to Claude API");
-      
-      // Set timeout to avoid waiting too long for the API
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 8000); // Increased timeout to 8 seconds
-      
-      try {
-        const response = await fetch('https://api.anthropic.com/v1/messages', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-api-key': claudeApiKey,
-            'anthropic-version': '2023-06-01'
-          },
-          body: JSON.stringify({
-            model: "claude-3-haiku-20240307",
-            max_tokens: 4000,
-            messages: [
-              { role: "user", content: prompt }
-            ]
-          }),
-          signal: controller.signal
-        });
-        
-        clearTimeout(timeoutId);
-        
-        // Handle rate limiting or other API errors
-        if (!response.ok) {
-          const errorData = await response.json();
-          console.error("Claude API error:", errorData);
-          throw new Error(`Claude API returned ${response.status}: ${JSON.stringify(errorData)}`);
-        }
-
-        const claudeResponse = await response.json();
-        console.log("Received Claude response status:", response.status);
-        
-        if (!claudeResponse.content || claudeResponse.content.length === 0) {
-          throw new Error("Invalid response from Claude API");
-        }
-        
-        // Extract the JSON from Claude's response
-        const content = claudeResponse.content[0].text;
-        let extractedQuestions;
-        
-        try {
-          // Look for JSON array in the response
-          const jsonMatch = content.match(/\[[\s\S]*\]/);
-          if (jsonMatch) {
-            extractedQuestions = JSON.parse(jsonMatch[0]);
-            
-            // Log success and return Claude-generated questions
-            console.log(`Successfully generated ${extractedQuestions.length} personalized questions`);
-            
-            return new Response(
-              JSON.stringify({ questions: extractedQuestions }),
-              { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-            );
-          } else {
-            throw new Error("Could not extract JSON from Claude response");
-          }
-        } catch (parseError) {
-          console.error("Error parsing Claude response:", parseError);
-          throw parseError;
-        }
-      } catch (fetchError) {
-        console.error("Error calling Claude API:", fetchError);
-        throw fetchError;
-      }
-    } catch (claudeError) {
-      console.error("Claude API error, falling back to default questions:", claudeError);
-      // Fall back to default questions in case of any error with Claude
-      return new Response(
-        JSON.stringify({ questions: defaultQuestions }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+    const questions = generateDefaultQuestions(selectedCategories, documents, extractedFields);
+    
+    console.log(`Generated ${questions.length} local questions`);
+    
+    return new Response(
+      JSON.stringify({ questions }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+    
   } catch (error) {
     console.error("Error:", error);
     
@@ -266,25 +105,94 @@ function generateDefaultQuestions(selectedCategories = [], documents = [], extra
   const isCategorySelected = (categoryId) => {
     return selectedCategories.some(cat => cat.id === categoryId);
   };
+  
+  // Helper function to check if a subcategory is selected
+  const isSubcategorySelected = (categoryId, subcategoryId) => {
+    const category = selectedCategories.find(cat => cat.id === categoryId);
+    return category?.subcategories?.some(sub => sub.id === subcategoryId);
+  };
+  
+  // Helper function to get quantity for a subcategory
+  const getSubcategoryQuantity = (categoryId, subcategoryId) => {
+    const category = selectedCategories.find(cat => cat.id === categoryId);
+    const subcategory = category?.subcategories?.find(sub => sub.id === subcategoryId);
+    return subcategory?.quantity || 0;
+  };
+  
+  // Helper to check if a document type exists
+  const hasDocumentType = (docType) => {
+    return documents.some(doc => 
+      doc.type === docType || 
+      (doc.name && doc.name.toLowerCase().includes(docType.toLowerCase()))
+    );
+  };
+
+  // Filing Status Questions
+  questions.push({
+    "id": generateId(),
+    "text": "What is your filing status for this tax year?",
+    "categoryId": "general",
+    "options": ["Single", "Married filing jointly", "Married filing separately", "Head of household", "Qualifying widow(er)"],
+    "followUpQuestions": {
+      "Married filing jointly": [{
+        "id": generateId(),
+        "text": "Did your spouse have income during the tax year?",
+        "categoryId": "general",
+        "options": ["Yes", "No"]
+      }],
+      "Head of household": [{
+        "id": generateId(),
+        "text": "Did you provide more than half the cost of keeping up a home for the year?",
+        "categoryId": "general",
+        "options": ["Yes", "No", "I'm not sure"]
+      }]
+    }
+  });
 
   // Generate questions based on selected categories
   if (isCategorySelected('income')) {
-    questions.push({
-      "id": generateId(),
-      "text": "Do you have any income from investments, dividends, or capital gains?",
-      "categoryId": "income",
-      "options": ["Yes", "No", "I'm not sure"],
-      "followUpQuestions": {
-        "Yes": [
-          {
+    // W-2 Employment
+    if (isSubcategorySelected('income', 'w2')) {
+      const w2Count = getSubcategoryQuantity('income', 'w2');
+      const hasW2 = hasDocumentType('W-2');
+      
+      questions.push({
+        "id": generateId(),
+        "text": `You indicated having ${w2Count} W-2${w2Count > 1 ? 's' : ''}. Have you uploaded all your W-2 forms?`,
+        "categoryId": "income",
+        "options": ["Yes", "No", "I need to get more W-2s"],
+        "missingDocument": hasW2 ? null : {
+          "name": "W-2 Wage and Tax Statement",
+          "description": "Form showing wages earned and taxes withheld from your employer",
+          "formNumber": "W-2",
+          "requiredFor": "Reporting employment income"
+        }
+      });
+    }
+    
+    // Investment Income
+    if (isSubcategorySelected('income', 'investments')) {
+      questions.push({
+        "id": generateId(),
+        "text": "What types of investment income did you receive this year?",
+        "categoryId": "income",
+        "options": ["Dividends only", "Capital gains only", "Both dividends and capital gains", "Neither"],
+        "missingDocument": {
+          "name": "Form 1099-DIV and/or 1099-B",
+          "description": "Forms reporting dividend income and/or proceeds from broker transactions",
+          "formNumber": "1099-DIV/1099-B",
+          "requiredFor": "Reporting investment income"
+        },
+        "followUpQuestions": {
+          "Capital gains only": [{
             "id": generateId(),
-            "text": "Do you have documentation such as Form 1099-DIV or 1099-B for these investment earnings?",
+            "text": "Did you sell any investments that you held for less than a year?",
             "categoryId": "income",
-            "options": ["Yes, I have all documents", "I have some documents", "No, I need to obtain them"]
-          }
-        ]
-      }
-    });
+            "options": ["Yes", "No", "I'm not sure"]
+          }]
+        }
+      });
+    }
   }
 
   if (isCategorySelected('deductions')) {
@@ -315,28 +223,52 @@ function generateDefaultQuestions(selectedCategories = [], documents = [], extra
   }
 
   if (isCategorySelected('family')) {
-    questions.push({
-      "id": generateId(),
-      "text": "Did you pay for childcare expenses for your dependent(s) under age 13?",
-      "categoryId": "family",
-      "options": ["Yes", "No"],
-      "missingDocument": {
-        "name": "Childcare Provider Information",
-        "description": "Documentation showing childcare payments and provider's tax ID",
-        "formNumber": null,
-        "requiredFor": "Child and Dependent Care Credit"
-      },
-      "followUpQuestions": {
-        "Yes": [
-          {
-            "id": generateId(),
-            "text": "Do you have the tax identification number (SSN or EIN) of your childcare provider?",
-            "categoryId": "family",
-            "options": ["Yes", "No", "I can obtain it"]
-          }
-        ]
-      }
-    });
+    // Dependents
+    if (isSubcategorySelected('family', 'dependents')) {
+      const dependentCount = getSubcategoryQuantity('family', 'dependents');
+      const pluralText = dependentCount > 1 ? 'dependents' : 'dependent';
+      
+      questions.push({
+        "id": generateId(),
+        "text": `You indicated having ${dependentCount} ${pluralText}. What are their ages?`,
+        "categoryId": "family",
+        "options": ["All under 17", "Some under 17, some 17+", "All 17+"],
+        "followUpQuestions": {
+          "All under 17": [
+            {
+              "id": generateId(),
+              "text": "Do you have Social Security numbers for all dependents?",
+              "categoryId": "family",
+              "options": ["Yes", "No, need help with this"]
+            }
+          ],
+          "Some under 17, some 17+": [
+            {
+              "id": generateId(),
+              "text": "Are any of your dependents full-time students?",
+              "categoryId": "family",
+              "options": ["Yes", "No"]
+            }
+          ]
+        }
+      });
+    }
+    
+    // Child Care
+    if (isSubcategorySelected('family', 'childcare')) {
+      questions.push({
+        "id": generateId(),
+        "text": "Do you have records of your childcare expenses with provider information?",
+        "categoryId": "family",
+        "options": ["Yes, complete records", "Yes, but missing some information", "No"],
+        "missingDocument": {
+          "name": "Childcare Provider Information",
+          "description": "Documentation showing childcare payments and provider's tax ID",
+          "formNumber": null,
+          "requiredFor": "Child and Dependent Care Credit"
+        }
+      });
+    }
   }
 
   if (isCategorySelected('home')) {
@@ -350,18 +282,27 @@ function generateDefaultQuestions(selectedCategories = [], documents = [], extra
         "description": "Statement from your lender showing mortgage interest paid",
         "formNumber": "1098",
         "requiredFor": "Mortgage Interest Deduction"
-      },
-      "followUpQuestions": {
-        "Yes": [
-          {
-            "id": generateId(),
-            "text": "Did you pay any points when obtaining or refinancing your mortgage?",
-            "categoryId": "home",
-            "options": ["Yes", "No", "I'm not sure"]
-          }
-        ]
       }
     });
+
+    if (isSubcategorySelected('home', 'sale')) {
+      questions.push({
+        "id": generateId(),
+        "text": "Did you sell your primary residence during this tax year?",
+        "categoryId": "home",
+        "options": ["Yes", "No"],
+        "followUpQuestions": {
+          "Yes": [
+            {
+              "id": generateId(),
+              "text": "Did you live in the home for at least 2 out of the last 5 years?",
+              "categoryId": "home",
+              "options": ["Yes", "No"]
+            }
+          ]
+        }
+      });
+    }
   }
 
   if (isCategorySelected('health')) {
@@ -381,6 +322,21 @@ function generateDefaultQuestions(selectedCategories = [], documents = [], extra
         ]
       }
     });
+
+    if (isSubcategorySelected('health', 'hsa')) {
+      questions.push({
+        "id": generateId(),
+        "text": "Did you contribute to a Health Savings Account (HSA) this year?",
+        "categoryId": "health",
+        "options": ["Yes, through my employer", "Yes, on my own", "Both employer and personal contributions", "No"],
+        "missingDocument": {
+          "name": "HSA Contribution Statement",
+          "description": "Form showing contributions to your Health Savings Account",
+          "formNumber": "5498-SA",
+          "requiredFor": "HSA contribution deduction"
+        }
+      });
+    }
   }
 
   if (isCategorySelected('investments')) {
@@ -402,45 +358,49 @@ function generateDefaultQuestions(selectedCategories = [], documents = [], extra
     });
   }
 
-  // If we still don't have at least 3 questions, add some general ones
-  if (questions.length < 2) {
+  // Remote Work Question
+  questions.push({
+    "id": generateId(),
+    "text": "Did you work remotely at any point during the tax year?",
+    "categoryId": "general",
+    "options": ["Yes, full-time remotely", "Yes, partially remotely", "No"],
+    "followUpQuestions": {
+      "Yes, full-time remotely": [
+        {
+          "id": generateId(),
+          "text": "Did you maintain a dedicated home office space used exclusively for work?",
+          "categoryId": "general",
+          "options": ["Yes", "No", "Only partially dedicated space"]
+        }
+      ]
+    }
+  });
+  
+  // Education
+  if (isCategorySelected('credits') && isSubcategorySelected('credits', 'education_credit')) {
     questions.push({
       "id": generateId(),
-      "text": "Did you work remotely at any point during the tax year?",
-      "categoryId": "general",
-      "options": ["Yes, full-time remotely", "Yes, partially remotely", "No"],
-      "followUpQuestions": {
-        "Yes, full-time remotely": [
-          {
-            "id": generateId(),
-            "text": "Did you maintain a dedicated home office space used exclusively for work?",
-            "categoryId": "general",
-            "options": ["Yes", "No", "Only partially dedicated space"]
-          }
-        ]
+      "text": "Did you pay for education expenses for yourself or a dependent this year?",
+      "categoryId": "education",
+      "options": ["Yes, for myself", "Yes, for my dependent", "Yes, for both", "No"],
+      "missingDocument": {
+        "name": "Tuition Statement",
+        "description": "Statement showing tuition payments made to an eligible educational institution",
+        "formNumber": "1098-T",
+        "requiredFor": "Education credits and deductions"
       }
     });
-    
+
     questions.push({
       "id": generateId(),
-      "text": "Did you have any student loan payments during the tax year?",
+      "text": "Did you pay any student loan interest?",
       "categoryId": "education",
-      "options": ["Yes", "No"],
-      "followUpQuestions": {
-        "Yes": [
-          {
-            "id": generateId(),
-            "text": "Did you pay any student loan interest?",
-            "categoryId": "education",
-            "options": ["Yes", "No", "I'm not sure"],
-            "missingDocument": {
-              "name": "Student Loan Interest Statement",
-              "description": "Statement showing interest paid on qualified student loans",
-              "formNumber": "1098-E",
-              "requiredFor": "Student Loan Interest Deduction"
-            }
-          }
-        ]
+      "options": ["Yes", "No", "I'm not sure"],
+      "missingDocument": {
+        "name": "Student Loan Interest Statement",
+        "description": "Statement showing interest paid on qualified student loans",
+        "formNumber": "1098-E",
+        "requiredFor": "Student Loan Interest Deduction"
       }
     });
   }

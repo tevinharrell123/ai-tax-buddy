@@ -110,6 +110,18 @@ export const generateLocalQuestions = (
             text: 'What percentage of your home do you use exclusively for business?',
             categoryId: 'income',
             options: ['0% (I don\'t work from home)', '1-10%', '11-20%', '21-30%', 'More than 30%']
+          }],
+          'Somewhat': [{
+            id: uuidv4(),
+            text: 'Do you have a separate business bank account?',
+            categoryId: 'income',
+            options: ['Yes', 'No']
+          }],
+          'No, I need help with this': [{
+            id: uuidv4(),
+            text: 'What type of freelance work do you primarily do?',
+            categoryId: 'income',
+            options: ['Creative work', 'Consulting', 'Digital services', 'Physical services', 'Other']
           }]
         }
       });
@@ -167,6 +179,12 @@ export const generateLocalQuestions = (
             text: 'For donated items, do you have documentation of their fair market value?',
             categoryId: 'deductions',
             options: ['Yes', 'No', 'Only for some items']
+          }],
+          'Donated goods/items': [{
+            id: uuidv4(),
+            text: 'What types of items did you donate?',
+            categoryId: 'deductions',
+            options: ['Clothing', 'Household goods', 'Electronics', 'Vehicles', 'Mixed items']
           }]
         }
       });
@@ -185,6 +203,12 @@ export const generateLocalQuestions = (
             text: 'Which types of medical expenses did you have?',
             categoryId: 'deductions',
             options: ['Doctor/hospital bills', 'Prescription medications', 'Health insurance premiums', 'All of these']
+          }],
+          'I need help calculating this': [{
+            id: uuidv4(),
+            text: 'What was your approximate adjusted gross income?',
+            categoryId: 'deductions',
+            options: ['Under $50,000', '$50,000-$100,000', '$100,000-$200,000', 'Over $200,000']
           }]
         }
       });
@@ -246,6 +270,12 @@ export const generateLocalQuestions = (
             text: 'What was the approximate gain on the sale of your home?',
             categoryId: 'home',
             options: ['Less than $250,000', '$250,000 - $500,000', 'More than $500,000', 'I had a loss']
+          }],
+          'No': [{
+            id: uuidv4(),
+            text: 'Was your home sale due to a job relocation, health reasons, or other unforeseen circumstances?',
+            categoryId: 'home',
+            options: ['Yes, job relocation', 'Yes, health reasons', 'Yes, other circumstances', 'No']
           }]
         }
       });
@@ -265,18 +295,42 @@ export const generateLocalQuestions = (
         categoryId: 'family',
         options: ['All under 17', 'Some under 17, some 17+', 'All 17+'],
         followUpQuestions: {
-          'All under 17': [{
-            id: uuidv4(),
-            text: 'Do you have Social Security numbers for all dependents?',
-            categoryId: 'family',
-            options: ['Yes', 'No, need help with this']
-          }],
-          'Some under 17, some 17+': [{
-            id: uuidv4(),
-            text: 'Are any of your dependents full-time students?',
-            categoryId: 'family',
-            options: ['Yes', 'No']
-          }]
+          'All under 17': [
+            {
+              id: uuidv4(),
+              text: 'Do you have Social Security numbers for all dependents?',
+              categoryId: 'family',
+              options: ['Yes', 'No, need help with this']
+            },
+            {
+              id: uuidv4(),
+              text: 'Did you pay for childcare expenses for any of your dependents?',
+              categoryId: 'family',
+              options: ['Yes', 'No']
+            }
+          ],
+          'Some under 17, some 17+': [
+            {
+              id: uuidv4(),
+              text: 'Are any of your dependents full-time students?',
+              categoryId: 'family',
+              options: ['Yes', 'No']
+            },
+            {
+              id: uuidv4(),
+              text: 'Did you contribute to any education expenses for your 17+ dependents?',
+              categoryId: 'family',
+              options: ['Yes, tuition payments', 'Yes, other education expenses', 'No']
+            }
+          ],
+          'All 17+': [
+            {
+              id: uuidv4(),
+              text: 'Do any of your dependents have income of their own?',
+              categoryId: 'family',
+              options: ['Yes', 'No']
+            }
+          ]
         }
       });
     }
@@ -300,6 +354,12 @@ export const generateLocalQuestions = (
             text: 'What was your total childcare expenses for the year?',
             categoryId: 'family',
             options: ['Less than $3,000', '$3,000 - $6,000', 'More than $6,000']
+          }],
+          'Yes, but missing some information': [{
+            id: uuidv4(),
+            text: 'What information are you missing about your childcare provider?',
+            categoryId: 'family',
+            options: ['Tax ID number', 'Complete address', 'Total amount paid', 'Multiple items']
           }]
         }
       });
@@ -326,12 +386,22 @@ export const generateLocalQuestions = (
           text: 'Were you enrolled at least half-time in a degree program?',
           categoryId: 'credits',
           options: ['Yes', 'No']
+        }, {
+          id: uuidv4(),
+          text: 'Is this your first four years of post-secondary education?',
+          categoryId: 'credits',
+          options: ['Yes', 'No']
         }],
         'Yes, for my dependent': [{
           id: uuidv4(),
           text: 'What year of college is your dependent in?',
           categoryId: 'credits',
           options: ['First year', 'Second year', 'Third year', 'Fourth year', 'Graduate school']
+        }, {
+          id: uuidv4(),
+          text: 'Did you pay for all of the education expenses, or did your dependent contribute?',
+          categoryId: 'credits',
+          options: ['I paid all expenses', 'Dependent contributed partially', 'We split costs equally']
         }]
       }
     });
@@ -358,6 +428,17 @@ export const generateLocalQuestions = (
             text: 'How much did you contribute to your HSA this year?',
             categoryId: 'health',
             options: ['Less than $3,000', '$3,000 - $5,000', 'More than $5,000', 'I\'m not sure']
+          }, {
+            id: uuidv4(),
+            text: 'Do you have a family HSA plan or an individual plan?',
+            categoryId: 'health',
+            options: ['Family plan', 'Individual plan']
+          }],
+          'Both employer and personal contributions': [{
+            id: uuidv4(),
+            text: 'Do you know the total combined contribution amount?',
+            categoryId: 'health',
+            options: ['Yes', 'No, need to calculate']
           }]
         }
       });
@@ -375,6 +456,19 @@ export const generateLocalQuestions = (
           description: 'Form showing health insurance coverage and any premium tax credits',
           formNumber: '1095-A',
           requiredFor: 'Premium Tax Credit'
+        },
+        followUpQuestions: {
+          'Yes': [{
+            id: uuidv4(),
+            text: 'Did you receive advance payments of the premium tax credit?',
+            categoryId: 'health',
+            options: ['Yes', 'No', 'I\'m not sure']
+          }, {
+            id: uuidv4(),
+            text: 'Was everyone in your tax household covered by the marketplace plan for the full year?',
+            categoryId: 'health',
+            options: ['Yes', 'No, partial year coverage', 'No, some people had other coverage']
+          }]
         }
       });
     }
@@ -393,12 +487,22 @@ export const generateLocalQuestions = (
           text: 'Did your spouse have income during the tax year?',
           categoryId: 'general',
           options: ['Yes', 'No']
+        }, {
+          id: uuidv4(),
+          text: 'Are you and your spouse filing a joint return for the first time?',
+          categoryId: 'general',
+          options: ['Yes', 'No']
         }],
         'Head of household': [{
           id: uuidv4(),
           text: 'Did you provide more than half the cost of keeping up a home for the year?',
           categoryId: 'general',
           options: ['Yes', 'No', 'I\'m not sure']
+        }, {
+          id: uuidv4(),
+          text: 'Did a qualifying person live with you for more than half the year?',
+          categoryId: 'general',
+          options: ['Yes', 'No']
         }]
       }
     });
@@ -414,10 +518,86 @@ export const generateLocalQuestions = (
           text: 'Did you maintain a dedicated home office space used exclusively for work?',
           categoryId: 'general',
           options: ['Yes', 'No']
+        }, {
+          id: uuidv4(),
+          text: 'Did your employer reimburse you for any home office expenses?',
+          categoryId: 'general',
+          options: ['Yes, fully reimbursed', 'Yes, partially reimbursed', 'No reimbursement']
+        }],
+        'Yes, partially remotely': [{
+          id: uuidv4(),
+          text: 'How many days per week did you typically work from home?',
+          categoryId: 'general',
+          options: ['1 day', '2 days', '3 days', '4 days', 'Varies significantly']
+        }]
+      }
+    });
+    
+    questions.push({
+      id: uuidv4(),
+      text: 'Did you move to a different state during the tax year?',
+      categoryId: 'general',
+      options: ['Yes', 'No'],
+      followUpQuestions: {
+        'Yes': [{
+          id: uuidv4(),
+          text: 'Was your move related to a new job or work location?',
+          categoryId: 'general',
+          options: ['Yes', 'No']
+        }, {
+          id: uuidv4(),
+          text: 'Have you updated your address with all your employers and financial institutions?',
+          categoryId: 'general',
+          options: ['Yes', 'No', 'Only some']
         }]
       }
     });
   }
+
+  // Always add a student loan question if we have education categories
+  if (isCategorySelected('credits')) {
+    questions.push({
+      id: uuidv4(),
+      text: 'Did you make any student loan interest payments during the tax year?',
+      categoryId: 'credits',
+      options: ['Yes', 'No'],
+      missingDocument: {
+        name: 'Student Loan Interest Statement',
+        description: 'Form showing interest paid on qualified student loans',
+        formNumber: '1098-E',
+        requiredFor: 'Student Loan Interest Deduction'
+      },
+      followUpQuestions: {
+        'Yes': [{
+          id: uuidv4(),
+          text: 'How much student loan interest did you pay?',
+          categoryId: 'credits',
+          options: ['Less than $600', '$600-$2,000', '$2,000-$2,500', 'More than $2,500']
+        }]
+      }
+    });
+  }
+
+  // Always add retirement question
+  questions.push({
+    id: uuidv4(),
+    text: 'Did you contribute to any retirement accounts this year?',
+    categoryId: 'general',
+    options: ['Yes', 'No'],
+    followUpQuestions: {
+      'Yes': [{
+        id: uuidv4(),
+        text: 'Which type of retirement accounts did you contribute to?',
+        categoryId: 'general',
+        options: ['Traditional IRA', 'Roth IRA', '401(k)/403(b)', 'Multiple types']
+      }, {
+        id: uuidv4(),
+        text: 'Are you eligible for the Retirement Savings Contributions Credit (Saver\'s Credit)?',
+        categoryId: 'general',
+        options: ['Yes', 'No', 'I\'m not sure']
+      }]
+    }
+  });
 
   return questions;
 };
