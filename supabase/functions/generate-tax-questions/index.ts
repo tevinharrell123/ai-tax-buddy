@@ -23,54 +23,101 @@ serve(async (req) => {
       );
     }
 
-    const { selectedCategories, documents } = await req.json();
+    const { 
+      selectedCategories, 
+      documents, 
+      extractedFields = [], 
+      categoryAnswers = [],
+      previousAnswers = [] 
+    } = await req.json();
     
     console.log("Received request with:", { 
       categoriesCount: selectedCategories?.length || 0, 
-      documentsCount: documents?.length || 0 
+      documentsCount: documents?.length || 0,
+      extractedFieldsCount: extractedFields?.length || 0,
+      categoryAnswersCount: categoryAnswers?.length || 0,
+      previousAnswersCount: previousAnswers?.length || 0
     });
 
     // Format the context for Claude
-    let prompt = `You are a tax expert AI that generates relevant tax questions to help users maximize their tax returns.
+    let prompt = `You are an expert tax professional and AI assistant that generates personalized tax questions to help users maximize their tax returns. 
+    
+I'm going to provide you with detailed information about a taxpayer, including:
+1. Tax categories they've selected as relevant to their situation
+2. Documents they've already uploaded
+3. Information extracted from those documents
+4. Previous answers to tax-related questions
+5. Details about their selections
 
-Based on the following selected tax categories and uploaded documents, generate a set of 3-5 personalized tax questions that would help the user maximize their tax refund.
+Your task is to generate 3-5 HIGHLY RELEVANT AND SPECIFIC tax questions that will:
+- Help identify additional tax deductions or credits they qualify for
+- Determine if any critical tax documents are missing
+- Gather information necessary for maximizing their refund
+- Provide tailored follow-up questions based on their answers
 
-Selected Categories:
+===== TAXPAYER INFORMATION =====
+
+Selected Categories (and subcategories):
 ${JSON.stringify(selectedCategories, null, 2)}
 
 Uploaded Documents:
 ${JSON.stringify(documents, null, 2)}
 
-For each question:
-1. Make it specific to the categories and documents
-2. Include appropriate options for multiple choice answers
-3. Identify if any required document is missing
-4. For yes/no questions that can lead to potential deductions or credits, include follow-up questions
-5. Provide a question ID, text, category ID reference, and multiple choice options
+Extracted Information from Documents:
+${JSON.stringify(extractedFields, null, 2)}
 
-Output only valid JSON in this format:
+Previous Category-Related Answers:
+${JSON.stringify(categoryAnswers, null, 2)}
+
+Previous Question Answers:
+${JSON.stringify(previousAnswers, null, 2)}
+
+===== IMPORTANT INSTRUCTIONS =====
+
+1. DO NOT ask questions that duplicate information we already have from their documents or previous answers.
+
+2. DO generate specific, personalized questions based on their exact tax situation.
+
+3. Focus on specific details that could lead to tax benefits, not general questions like "How many jobs did you have?"
+
+4. For any appropriate question, include detailed follow-up questions that appear when certain answers are selected.
+
+5. If you detect a missing tax document, specify exactly what document is missing, what form number it is, and why it's needed.
+
+6. Examples of GOOD questions:
+   - "Your W-2 shows you contributed $2,500 to your 401(k). Did you make any additional retirement contributions to an IRA?"
+   - "Based on your homeowner status, do you have mortgage interest statements (Form 1098) to claim the mortgage interest deduction?"
+   - "You indicated having a child. What is their age and did they attend college or childcare during the tax year?"
+
+7. Examples of BAD questions:
+   - "Did you have any income?" (Too vague, we already know from documents)
+   - "How many dependents do you have?" (If they already indicated this in categories)
+
+Output valid JSON in this format:
 [
   {
     "id": "question-uuid",
-    "text": "Question text here",
+    "text": "Question text here - be specific and personalized",
     "categoryId": "related-category-id",
     "options": ["Option 1", "Option 2", "Option 3"],
-    "missingDocument": null or { "name": "Document Name", "description": "Brief description of what this document is" },
+    "missingDocument": null or { 
+      "name": "Document Name", 
+      "description": "Brief description of what this document is",
+      "formNumber": "1098", 
+      "requiredFor": "Mortgage Interest Deduction" 
+    },
     "followUpQuestions": {
       "Option 1": [
         {
           "id": "follow-up-question-uuid",
-          "text": "Follow-up question text here",
+          "text": "Follow-up question text here - be detailed",
           "categoryId": "related-category-id",
           "options": ["Option A", "Option B", "Option C"]
         }
       ]
     }
-  },
-  ...more questions
-]
-
-Important: Include detailed follow-up questions whenever a response to a main question could lead to additional tax deductions or credits. For example, if asking about dependents, include follow-ups about their ages, student status, etc. If asking about education expenses, include follow-ups about textbooks, equipment, etc. These follow-up questions are critical for maximizing the user's tax refund.`;
+  }
+]`;
 
     console.log("Sending request to Claude API");
     

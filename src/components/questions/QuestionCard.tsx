@@ -9,6 +9,8 @@ import AnimatedCard from '@/components/ui/AnimatedCard';
 interface MissingDocument {
   name: string;
   description: string;
+  formNumber?: string;
+  requiredFor?: string;
 }
 
 interface CustomQuestion {
@@ -79,8 +81,14 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
             <div className="flex items-start">
               <AlertCircle className="h-5 w-5 text-amber-500 mr-2 mt-0.5" />
               <div>
-                <h3 className="font-medium text-amber-800">Missing Document: {question.missingDocument.name}</h3>
+                <h3 className="font-medium text-amber-800">
+                  Missing Document: {question.missingDocument.name}
+                  {question.missingDocument.formNumber && ` (Form ${question.missingDocument.formNumber})`}
+                </h3>
                 <p className="text-sm text-amber-700">{question.missingDocument.description}</p>
+                {question.missingDocument.requiredFor && (
+                  <p className="text-xs text-amber-600 mt-1">Required for: {question.missingDocument.requiredFor}</p>
+                )}
                 <Button 
                   variant="outline" 
                   size="sm" 

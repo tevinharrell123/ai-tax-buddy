@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState, useCallback } from 'react';
 import { useTaxOrganizer } from '../context/TaxOrganizerContext';
 import Layout from '../components/layout/Layout';
@@ -21,6 +22,8 @@ import { Question as TaxQuestion } from '@/context/TaxOrganizerContext';
 interface MissingDocument {
   name: string;
   description: string;
+  formNumber?: string;
+  requiredFor?: string;
 }
 
 interface CustomQuestion {
@@ -65,17 +68,64 @@ const Questions: React.FC = () => {
     setError(null);
 
     try {
-      const selectedCategories = state.categories.filter(cat => cat.selected);
+      // Get all selected categories with their subcategories
+      const selectedCategories = state.categories.filter(cat => cat.selected).map(category => {
+        // Include quantity information for subcategories
+        return {
+          ...category,
+          subcategories: category.subcategories?.filter(sub => sub.selected)
+        };
+      });
       
+      // Format documents with more detail
       const documents = state.documents.map(doc => ({
         id: doc.id,
         name: doc.name,
         type: doc.type,
-        category: doc.category
+        category: doc.category,
+        status: doc.status
       }));
 
+      // Include extracted fields for context
+      const extractedFields = state.extractedFields.map(field => ({
+        id: field.id,
+        name: field.name,
+        value: field.value,
+        category: field.category
+      }));
+
+      // Create a mapping of category selections
+      const categoryAnswers = selectedCategories.map(cat => {
+        const subcategoriesInfo = cat.subcategories?.map(sub => ({
+          id: sub.id,
+          name: sub.name,
+          quantity: sub.quantity || 1
+        })) || [];
+        
+        return {
+          categoryId: cat.id,
+          categoryName: cat.name,
+          selected: true,
+          subcategories: subcategoriesInfo
+        };
+      });
+
+      // Include previous question answers
+      const previousAnswers = state.questions.map(q => ({
+        questionId: q.id,
+        questionText: q.text,
+        answer: q.answer,
+        categoryId: q.categoryId
+      })).filter(q => q.answer !== null && q.answer !== '');
+
       const { data, error } = await supabase.functions.invoke('generate-tax-questions', {
-        body: { selectedCategories, documents }
+        body: { 
+          selectedCategories, 
+          documents, 
+          extractedFields,
+          categoryAnswers,
+          previousAnswers
+        }
       });
 
       if (error) {
@@ -127,7 +177,7 @@ const Questions: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [state.categories, state.documents, dispatch]);
+  }, [state.categories, state.documents, state.extractedFields, state.questions, dispatch]);
 
   useEffect(() => {
     fetchPersonalizedQuestions();
@@ -300,9 +350,9 @@ const Questions: React.FC = () => {
         <div id="confetti-container" className="absolute inset-0 overflow-hidden pointer-events-none"></div>
         
         <AnimatedCard delay={100} className="text-center mb-8">
-          <h1 className="text-2xl font-bold mb-2 text-gray-800">A Few More Questions</h1>
+          <h1 className="text-2xl font-bold mb-2 text-gray-800">Personalized Tax Questions</h1>
           <p className="text-gray-600">
-            Based on your selections, we have a few more questions to better organize your tax information.
+            Based on your tax situation, we have some specific questions to help maximize your refund.
           </p>
         </AnimatedCard>
         
@@ -328,7 +378,7 @@ const Questions: React.FC = () => {
           {isLoading ? (
             <div className="flex flex-col items-center justify-center py-12 bg-white rounded-xl shadow">
               <Loader2 className="h-10 w-10 text-tax-blue animate-spin" />
-              <p className="mt-4 text-gray-600">Generating personalized questions...</p>
+              <p className="mt-4 text-gray-600">Generating personalized tax questions...</p>
             </div>
           ) : error ? (
             <div className="flex flex-col items-center justify-center py-12 bg-white rounded-xl shadow">
@@ -374,9 +424,9 @@ const Questions: React.FC = () => {
               <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-info"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
             </div>
             <div>
-              <h3 className="font-medium">Why we ask these questions</h3>
+              <h3 className="font-medium">How These Questions Help You</h3>
               <p className="text-sm text-gray-600">
-                Your answers help us organize your tax documents more efficiently and identify potential deductions or credits you might qualify for.
+                These questions are personalized based on your tax situation and help identify potential deductions, credits, and missing documents that could maximize your refund.
               </p>
             </div>
           </div>
