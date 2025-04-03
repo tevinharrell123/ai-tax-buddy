@@ -4,13 +4,14 @@ import { useNavigate } from 'react-router-dom';
 import Layout from '../components/layout/Layout';
 import AnimatedCard from '../components/ui/AnimatedCard';
 import { Button } from '@/components/ui/button';
-import { ArrowUpFromLine, Link as LinkIcon, Check } from 'lucide-react';
+import { ArrowUpFromLine, Link as LinkIcon, Check, FileText } from 'lucide-react';
 import { useTaxOrganizer } from '../context/TaxOrganizerContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { useToast } from "@/hooks/use-toast";
 import { Progress } from '@/components/ui/progress';
 import { Input } from '@/components/ui/input';
-import FileUploader from '@/components/ui/FileUploader'; // Fixed import statement
+import FileUploader from '@/components/ui/FileUploader';
+import { Checkbox } from '@/components/ui/checkbox';
 
 const ImportOptions: React.FC = () => {
   const navigate = useNavigate();
@@ -21,6 +22,8 @@ const ImportOptions: React.FC = () => {
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadComplete, setUploadComplete] = useState(false);
+  const [uploadedFile, setUploadedFile] = useState<string | null>(null);
   
   // State for IRS connection dialog
   const [irsDialogOpen, setIrsDialogOpen] = useState(false);
@@ -50,14 +53,13 @@ const ImportOptions: React.FC = () => {
           setIsUploading(false);
           setUploadDialogOpen(false);
           setUploadProgress(0);
+          setUploadComplete(true);
+          setUploadedFile("1040_tax_return.pdf");
           toast({
             title: "Upload Complete",
             description: "Your tax return was successfully uploaded and processed.",
             variant: "success",
           });
-          
-          // Mark as complete in the state
-          dispatch({ type: 'UPDATE_PROGRESS', payload: { uploadComplete: true } });
         }, 500);
       }
     }, 300);
@@ -86,9 +88,6 @@ const ImportOptions: React.FC = () => {
         setTimeout(() => {
           setIsConnecting(false);
           setIsConnected(true);
-          
-          // Mark as complete in the state
-          dispatch({ type: 'UPDATE_PROGRESS', payload: { uploadComplete: true } });
         }, 500);
       }
     }, 300);
@@ -98,18 +97,18 @@ const ImportOptions: React.FC = () => {
     <Layout
       onNext={handleProceed}
       showBackButton={true}
-      nextButtonText="Skip & Continue"
+      nextButtonText={uploadComplete || isConnected ? "Continue" : "Skip & Continue"}
     >
       <div className="max-w-4xl mx-auto relative">
         <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 via-blue-300/5 to-transparent rounded-3xl blur-3xl -z-10"></div>
         
         {/* Virtual Tax Assistant Image - Positioned a bit lower */}
-        <div className="flex justify-center mb-8 relative">
-          <div className="absolute -top-12 right-0 md:right-12">
+        <div className="flex justify-center mb-12 relative">
+          <div className="absolute -top-6 md:-top-2 right-0 md:right-12">
             <img 
               src="/lovable-uploads/e2c4b33b-d4e4-449a-a3ee-389616d5e3fe.png" 
               alt="Tax Assistant" 
-              className="w-32 h-32 md:w-40 md:h-40 object-cover rounded-full shadow-xl border-4 border-white"
+              className="w-32 h-32 md:w-48 md:h-48 object-cover rounded-full shadow-xl border-4 border-white"
             />
             <div className="absolute bottom-0 right-0 bg-tax-blue text-white p-1 rounded-full">
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2"></path><path d="m8 9 3 3-3 3"></path><line x1="13" x2="16" y1="15" y2="15"></line></svg>
@@ -129,33 +128,72 @@ const ImportOptions: React.FC = () => {
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <AnimatedCard delay={200} className="h-full">
-            <div 
-              className="bg-white rounded-xl shadow-md p-6 h-full border-2 border-dashed border-tax-blue/30 hover:border-tax-blue transition-all cursor-pointer group"
-              onClick={() => setUploadDialogOpen(true)}
-            >
-              <div className="bg-tax-lightBlue p-4 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-6">
-                <ArrowUpFromLine className="text-tax-blue group-hover:scale-110 transition-transform" size={28} />
+            {uploadComplete ? (
+              <div className="bg-white rounded-xl shadow-md p-6 h-full border-2 border-green-500/30 hover:border-green-500 transition-all">
+                <div className="bg-green-100 p-4 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-6">
+                  <Check className="text-green-600" size={28} />
+                </div>
+                <h3 className="font-medium text-xl mb-3 text-center">Tax Return Uploaded</h3>
+                <div className="flex items-center justify-center space-x-2 mt-4 bg-gray-50 p-3 rounded-lg">
+                  <FileText size={20} className="text-gray-500" />
+                  <p className="text-sm font-medium">{uploadedFile}</p>
+                </div>
+                <p className="text-gray-600 text-center mt-4 text-sm">
+                  Your tax information will be pre-filled automatically
+                </p>
               </div>
-              <h3 className="font-medium text-xl mb-3 text-center">Upload last year's tax return</h3>
-              <p className="text-gray-600 text-center">
-                Import data from your previous tax return to save time on data entry
-              </p>
-            </div>
+            ) : (
+              <div 
+                className="bg-white rounded-xl shadow-md p-6 h-full border-2 border-dashed border-tax-blue/30 hover:border-tax-blue transition-all cursor-pointer group"
+                onClick={() => setUploadDialogOpen(true)}
+              >
+                <div className="bg-tax-lightBlue p-4 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-6">
+                  <ArrowUpFromLine className="text-tax-blue group-hover:scale-110 transition-transform" size={28} />
+                </div>
+                <h3 className="font-medium text-xl mb-3 text-center">Upload last year's tax return</h3>
+                <p className="text-gray-600 text-center">
+                  Import data from your previous tax return to save time on data entry
+                </p>
+              </div>
+            )}
           </AnimatedCard>
           
           <AnimatedCard delay={300} className="h-full">
-            <div 
-              className="bg-white rounded-xl shadow-md p-6 h-full border-2 border-dashed border-tax-blue/30 hover:border-tax-blue transition-all cursor-pointer group"
-              onClick={() => setIrsDialogOpen(true)}
-            >
-              <div className="bg-tax-lightBlue p-4 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-6">
-                <LinkIcon className="text-tax-blue group-hover:scale-110 transition-transform" size={28} />
+            {isConnected ? (
+              <div className="bg-white rounded-xl shadow-md p-6 h-full border-2 border-green-500/30 hover:border-green-500 transition-all">
+                <div className="bg-green-100 p-4 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-6">
+                  <Check className="text-green-600" size={28} />
+                </div>
+                <h3 className="font-medium text-xl mb-3 text-center">Connected to IRS</h3>
+                <div className="flex items-center justify-center mt-4">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox id="irs-connected" checked={true} />
+                    <label
+                      htmlFor="irs-connected"
+                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                    >
+                      IRS Connection Complete
+                    </label>
+                  </div>
+                </div>
+                <p className="text-gray-600 text-center mt-4 text-sm">
+                  Your tax documents have been retrieved successfully
+                </p>
               </div>
-              <h3 className="font-medium text-xl mb-3 text-center">Connect to IRS & financial institutions</h3>
-              <p className="text-gray-600 text-center">
-                Securely connect to retrieve your tax documents automatically
-              </p>
-            </div>
+            ) : (
+              <div 
+                className="bg-white rounded-xl shadow-md p-6 h-full border-2 border-dashed border-tax-blue/30 hover:border-tax-blue transition-all cursor-pointer group"
+                onClick={() => setIrsDialogOpen(true)}
+              >
+                <div className="bg-tax-lightBlue p-4 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-6">
+                  <LinkIcon className="text-tax-blue group-hover:scale-110 transition-transform" size={28} />
+                </div>
+                <h3 className="font-medium text-xl mb-3 text-center">Connect to IRS & financial institutions</h3>
+                <p className="text-gray-600 text-center">
+                  Securely connect to retrieve your tax documents automatically
+                </p>
+              </div>
+            )}
           </AnimatedCard>
         </div>
         
