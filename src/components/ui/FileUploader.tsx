@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from 'react';
 import { Upload, File, X, Check, FileText, CreditCard } from 'lucide-react';
 import { useTaxOrganizer } from '../../context/TaxOrganizerContext';
@@ -7,7 +6,17 @@ import { v4 as uuidv4 } from 'uuid';
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-const FileUploader: React.FC = () => {
+interface FileUploaderProps {
+  onUpload?: () => void;
+  documentType?: string;
+  maxFiles?: number;
+}
+
+const FileUploader: React.FC<FileUploaderProps> = ({ 
+  onUpload,
+  documentType = "any",
+  maxFiles
+}) => {
   const { state, dispatch } = useTaxOrganizer();
   const [isDragging, setIsDragging] = useState(false);
   const [activeCategory, setActiveCategory] = useState<string>("identification");
@@ -55,6 +64,10 @@ const FileUploader: React.FC = () => {
   const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       handleFiles(e.target.files, activeCategory);
+      
+      if (onUpload) {
+        onUpload();
+      }
     }
   };
 
@@ -113,7 +126,28 @@ const FileUploader: React.FC = () => {
   };
 
   const handleFiles = (files: FileList, category: string) => {
-    Array.from(files).forEach(async (file) => {
+    const filesToProcess = maxFiles 
+      ? Array.from(files).slice(0, maxFiles) 
+      : Array.from(files);
+    
+    filesToProcess.forEach(async (file) => {
+      if (documentType !== "any") {
+        const fileTypeMap: Record<string, string[]> = {
+          "tax": ["application/pdf", "image/jpeg", "image/png"],
+          "id": ["image/jpeg", "image/png", "image/tiff"]
+        };
+        
+        const allowedTypes = fileTypeMap[documentType];
+        if (allowedTypes && !allowedTypes.includes(file.type)) {
+          toast({
+            title: "Invalid file type",
+            description: `Please upload only ${documentType} document types.`,
+            variant: "destructive",
+          });
+          return;
+        }
+      }
+      
       const documentId = uuidv4();
       
       const previewUrl = URL.createObjectURL(file);
@@ -256,119 +290,156 @@ const FileUploader: React.FC = () => {
 
   return (
     <div className="w-full space-y-6">
-      <Tabs defaultValue="identification" onValueChange={setActiveCategory} className="w-full">
-        <TabsList className="w-full grid grid-cols-2 mb-6">
-          {documentCategories.map(category => (
-            <TabsTrigger 
-              key={category.id} 
-              value={category.id} 
-              className="flex flex-col items-center gap-1 py-4"
+      {onUpload ? (
+        <div 
+          className="upload-container flex flex-col items-center justify-center p-6 rounded-xl border-2 border-dashed border-tax-blue/30 bg-tax-lightBlue transition-all"
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={(e) => handleDrop(e, "tax-forms")}
+        >
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleFileInput}
+            accept=".pdf,.jpg,.jpeg,.png,.tiff,.bmp,.heic"
+            multiple={!maxFiles || maxFiles > 1}
+            className="hidden"
+          />
+          
+          <div className="flex flex-col items-center text-center">
+            <div className="bg-tax-lightBlue p-4 rounded-full mb-4">
+              <FileText className="text-tax-blue" size={24} />
+            </div>
+            <h3 className="text-lg font-semibold mb-2">Upload Tax Documents</h3>
+            <p className="text-gray-500 mb-4 max-w-md">
+              Select or drag and drop your tax documents here
+            </p>
+            <button 
+              onClick={triggerFileInputClick}
+              className="bg-tax-blue text-white px-6 py-2 rounded-lg hover:bg-tax-darkBlue transition-colors"
             >
-              <div className={`p-2 rounded-full transition-colors ${activeCategory === category.id ? category.activeColor : 'bg-gray-100'}`}>
-                {category.icon}
-              </div>
-              <span className="text-xs font-medium">{category.name}</span>
-            </TabsTrigger>
-          ))}
-        </TabsList>
-
-        {documentCategories.map(category => (
-          <TabsContent key={category.id} value={category.id} className="mt-0">
-            <div 
-              className={`upload-container h-64 flex flex-col items-center justify-center p-6 rounded-xl border-2 border-dashed transition-all ${
-                category.color
-              } ${
-                isDragging && activeCategory === category.id ? 'scale-102 border-tax-blue' : ''
-              }`}
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-              onDrop={(e) => handleDrop(e, category.id)}
-            >
-              <input
-                type="file"
-                ref={fileInputRef}
-                onChange={handleFileInput}
-                accept=".pdf,.jpg,.jpeg,.png,.tiff,.bmp,.heic"
-                multiple
-                className="hidden"
-              />
-              
-              <div className="flex flex-col items-center text-center">
-                <div className={`${category.color} p-4 rounded-full mb-4`}>
+              Browse Files
+            </button>
+            <p className="text-xs text-gray-400 mt-4">
+              Supported formats: PDF, JPEG, PNG, TIFF, BMP, HEIC
+            </p>
+          </div>
+        </div>
+      ) : (
+        <Tabs defaultValue="identification" onValueChange={setActiveCategory} className="w-full">
+          <TabsList className="w-full grid grid-cols-2 mb-6">
+            {documentCategories.map(category => (
+              <TabsTrigger 
+                key={category.id} 
+                value={category.id} 
+                className="flex flex-col items-center gap-1 py-4"
+              >
+                <div className={`p-2 rounded-full transition-colors ${activeCategory === category.id ? category.activeColor : 'bg-gray-100'}`}>
                   {category.icon}
                 </div>
-                <h3 className="text-lg font-semibold mb-2">{category.name}</h3>
-                <p className="text-gray-500 mb-4 max-w-md">
-                  {category.description}
-                </p>
-                <button 
-                  onClick={triggerFileInputClick}
-                  className="bg-tax-blue text-white px-6 py-2 rounded-lg hover:bg-tax-darkBlue transition-colors"
-                >
-                  Browse Files
-                </button>
-                <p className="text-xs text-gray-400 mt-4">
-                  Supported formats: PDF, JPEG, PNG, TIFF, BMP, HEIC
-                </p>
-              </div>
-            </div>
+                <span className="text-xs font-medium">{category.name}</span>
+              </TabsTrigger>
+            ))}
+          </TabsList>
 
-            {getDocumentsByCategory(category.id).length > 0 && (
-              <div className="bg-white p-4 rounded-xl border mt-4">
-                <h3 className="font-medium mb-3">{category.name} Documents ({getDocumentsByCategory(category.id).length})</h3>
-                <div className="space-y-3">
-                  {getDocumentsByCategory(category.id).map((doc) => (
-                    <div key={doc.id} className="flex items-center p-3 bg-gray-50 rounded-lg">
-                      <div className="bg-gray-100 p-2 rounded">
-                        <FileText size={20} className="text-gray-500" />
-                      </div>
-                      <div className="ml-3 flex-1">
-                        <div className="flex justify-between">
-                          <p className="text-sm font-medium truncate max-w-xs">{doc.name}</p>
-                          <button 
-                            onClick={() => removeDocument(doc.id)}
-                            className="text-gray-400 hover:text-red-500 transition-colors"
-                          >
-                            <X size={16} />
-                          </button>
-                        </div>
-                        
-                        {doc.status === 'uploading' && (
-                          <div className="w-full bg-gray-200 rounded-full h-1.5 mt-2">
-                            <div 
-                              className="bg-tax-blue h-1.5 rounded-full transition-all duration-300"
-                              style={{ width: `${doc.uploadProgress}%` }}
-                            />
-                          </div>
-                        )}
-                        
-                        {doc.status === 'uploaded' && (
-                          <p className="text-xs text-yellow-600 flex items-center mt-1">
-                            Processing...
-                          </p>
-                        )}
-                        
-                        {doc.status === 'processed' && (
-                          <p className="text-xs text-green-600 flex items-center mt-1">
-                            <Check size={12} className="mr-1" />
-                            Processed successfully
-                          </p>
-                        )}
-                        
-                        {doc.status === 'error' && (
-                          <p className="text-xs text-red-600 mt-1">
-                            Error processing file
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  ))}
+          {documentCategories.map(category => (
+            <TabsContent key={category.id} value={category.id} className="mt-0">
+              <div 
+                className={`upload-container h-64 flex flex-col items-center justify-center p-6 rounded-xl border-2 border-dashed transition-all ${
+                  category.color
+                } ${
+                  isDragging && activeCategory === category.id ? 'scale-102 border-tax-blue' : ''
+                }`}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={(e) => handleDrop(e, category.id)}
+              >
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleFileInput}
+                  accept=".pdf,.jpg,.jpeg,.png,.tiff,.bmp,.heic"
+                  multiple
+                  className="hidden"
+                />
+                
+                <div className="flex flex-col items-center text-center">
+                  <div className={`${category.color} p-4 rounded-full mb-4`}>
+                    {category.icon}
+                  </div>
+                  <h3 className="text-lg font-semibold mb-2">{category.name}</h3>
+                  <p className="text-gray-500 mb-4 max-w-md">
+                    {category.description}
+                  </p>
+                  <button 
+                    onClick={triggerFileInputClick}
+                    className="bg-tax-blue text-white px-6 py-2 rounded-lg hover:bg-tax-darkBlue transition-colors"
+                  >
+                    Browse Files
+                  </button>
+                  <p className="text-xs text-gray-400 mt-4">
+                    Supported formats: PDF, JPEG, PNG, TIFF, BMP, HEIC
+                  </p>
                 </div>
               </div>
-            )}
-          </TabsContent>
-        ))}
-      </Tabs>
+
+              {getDocumentsByCategory(category.id).length > 0 && (
+                <div className="bg-white p-4 rounded-xl border mt-4">
+                  <h3 className="font-medium mb-3">{category.name} Documents ({getDocumentsByCategory(category.id).length})</h3>
+                  <div className="space-y-3">
+                    {getDocumentsByCategory(category.id).map((doc) => (
+                      <div key={doc.id} className="flex items-center p-3 bg-gray-50 rounded-lg">
+                        <div className="bg-gray-100 p-2 rounded">
+                          <FileText size={20} className="text-gray-500" />
+                        </div>
+                        <div className="ml-3 flex-1">
+                          <div className="flex justify-between">
+                            <p className="text-sm font-medium truncate max-w-xs">{doc.name}</p>
+                            <button 
+                              onClick={() => removeDocument(doc.id)}
+                              className="text-gray-400 hover:text-red-500 transition-colors"
+                            >
+                              <X size={16} />
+                            </button>
+                          </div>
+                          
+                          {doc.status === 'uploading' && (
+                            <div className="w-full bg-gray-200 rounded-full h-1.5 mt-2">
+                              <div 
+                                className="bg-tax-blue h-1.5 rounded-full transition-all duration-300"
+                                style={{ width: `${doc.uploadProgress}%` }}
+                              />
+                            </div>
+                          )}
+                          
+                          {doc.status === 'uploaded' && (
+                            <p className="text-xs text-yellow-600 flex items-center mt-1">
+                              Processing...
+                            </p>
+                          )}
+                          
+                          {doc.status === 'processed' && (
+                            <p className="text-xs text-green-600 flex items-center mt-1">
+                              <Check size={12} className="mr-1" />
+                              Processed successfully
+                            </p>
+                          )}
+                          
+                          {doc.status === 'error' && (
+                            <p className="text-xs text-red-600 mt-1">
+                              Error processing file
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </TabsContent>
+          ))}
+        </Tabs>
+      )}
     </div>
   );
 };

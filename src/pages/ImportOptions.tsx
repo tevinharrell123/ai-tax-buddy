@@ -7,10 +7,10 @@ import { Button } from '@/components/ui/button';
 import { ArrowUpFromLine, Link as LinkIcon, Check } from 'lucide-react';
 import { useTaxOrganizer } from '../context/TaxOrganizerContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { Progress } from '@/components/ui/progress';
 import { Input } from '@/components/ui/input';
-import { FileUploader } from '@/components/ui/FileUploader';
+import FileUploader from '@/components/ui/FileUploader'; // Fixed import statement
 
 const ImportOptions: React.FC = () => {
   const navigate = useNavigate();
@@ -55,7 +55,9 @@ const ImportOptions: React.FC = () => {
             description: "Your tax return was successfully uploaded and processed.",
             variant: "success",
           });
-          dispatch({ type: 'SET_UPLOAD_COMPLETE', payload: true });
+          
+          // Mark as complete in the state
+          dispatch({ type: 'UPDATE_PROGRESS', payload: { uploadComplete: true } });
         }, 500);
       }
     }, 300);
@@ -84,7 +86,9 @@ const ImportOptions: React.FC = () => {
         setTimeout(() => {
           setIsConnecting(false);
           setIsConnected(true);
-          dispatch({ type: 'SET_UPLOAD_COMPLETE', payload: true });
+          
+          // Mark as complete in the state
+          dispatch({ type: 'UPDATE_PROGRESS', payload: { uploadComplete: true } });
         }, 500);
       }
     }, 300);
