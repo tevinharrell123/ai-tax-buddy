@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useTaxOrganizer } from '../context/TaxOrganizerContext';
 import Layout from '../components/layout/Layout';
@@ -31,14 +30,16 @@ const AIReview: React.FC = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   
-  // Ensure we're on step 4 when this component loads (previously was step 2)
   useEffect(() => {
     if (state.step !== 4) {
       dispatch({ type: 'SET_STEP', payload: 4 });
+      
+      if (!state.completedSteps.includes(3) && location.pathname === '/review') {
+        navigate('/categories');
+      }
     }
   }, []);
   
-  // Group fields by category
   const fieldsByCategory = state.extractedFields.reduce((acc, field) => {
     const category = field.category || 'Other Information';
     if (!acc[category]) {
@@ -48,21 +49,17 @@ const AIReview: React.FC = () => {
     return acc;
   }, {});
   
-  // Get all categories with fields
   const categories = Object.keys(fieldsByCategory).sort();
   
-  // Get current fields based on active tab and pagination
   const fieldsPerSection = 6;
   let currentFields = [];
   
   if (activeTab === "all") {
-    // All fields, paginated
     currentFields = state.extractedFields.slice(
       currentSection * fieldsPerSection, 
       (currentSection + 1) * fieldsPerSection
     );
   } else {
-    // Category-specific fields, paginated
     const categoryFields = fieldsByCategory[activeTab] || [];
     currentFields = categoryFields.slice(
       currentSection * fieldsPerSection, 
@@ -70,7 +67,6 @@ const AIReview: React.FC = () => {
     );
   }
   
-  // Calculate pagination info based on active tab
   const totalFields = activeTab === "all" 
     ? state.extractedFields.length 
     : (fieldsByCategory[activeTab] || []).length;
@@ -145,18 +141,15 @@ const AIReview: React.FC = () => {
 
   const changeTab = (tab: string) => {
     setActiveTab(tab);
-    setCurrentSection(0); // Reset pagination when changing tabs
+    setCurrentSection(0);
   };
 
   const isReviewComplete = state.extractedFields.every(field => field.isCorrect !== null);
 
   const handleNextStep = () => {
     if (isReviewComplete) {
-      // Mark this step as completed
-      dispatch({ type: 'MARK_STEP_COMPLETED', payload: 4 }); // Update to step 4
-      // Go directly to step 5 (Questions)
+      dispatch({ type: 'MARK_STEP_COMPLETED', payload: 4 });
       dispatch({ type: 'SET_STEP', payload: 5 });
-      // Navigate to the questions page
       navigate('/questions');
       
       toast({
@@ -249,9 +242,9 @@ const AIReview: React.FC = () => {
                       const touchEndX = e.changedTouches[0].clientX;
                       const diff = touchStartX - touchEndX;
                       
-                      if (diff > 50) { // Swiped left
+                      if (diff > 50) {
                         goToNextSection();
-                      } else if (diff < -50) { // Swiped right
+                      } else if (diff < -50) {
                         goToPrevSection();
                       }
                       

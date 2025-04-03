@@ -1,6 +1,6 @@
 
 import React, { ReactNode, useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useTaxOrganizer } from '../../context/TaxOrganizerContext';
 
 import Header from './Header';
@@ -31,9 +31,10 @@ const Layout: React.FC<LayoutProps> = ({
 }) => {
   const { state, dispatch } = useTaxOrganizer();
   const location = useLocation();
+  const navigate = useNavigate();
   const { handleNext, handleBack } = useLayoutNavigation();
   
-  // Set the current step based on the route when component mounts
+  // Set the correct step based on the route when component mounts
   useEffect(() => {
     let currentStep = 1;
     
@@ -63,7 +64,13 @@ const Layout: React.FC<LayoutProps> = ({
     if (currentStep !== state.step) {
       dispatch({ type: 'SET_STEP', payload: currentStep });
     }
-  }, [location.pathname, dispatch, state.step]);
+    
+    // If we're on the review page but haven't completed the categories step,
+    // redirect to categories
+    if (location.pathname === '/review' && !state.completedSteps.includes(3)) {
+      navigate('/categories');
+    }
+  }, [location.pathname, dispatch, state.step, state.completedSteps]);
 
   return (
     <div className="min-h-screen bg-background tax-container flex flex-col">
