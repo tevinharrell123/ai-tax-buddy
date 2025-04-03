@@ -1,30 +1,17 @@
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { useTaxOrganizer } from '../context/TaxOrganizerContext';
 import Layout from '../components/layout/Layout';
 import AnimatedCard from '../components/ui/AnimatedCard';
-import { Check, ChevronRight, ChevronLeft, AlertCircle, Upload, Loader2 } from 'lucide-react';
-import { taxQuestions } from '../data/taxCategories';
+import { Check, ChevronRight, ChevronLeft, AlertCircle, Upload, Loader2, RefreshCw } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { v4 as uuidv4 } from 'uuid';
 import { Button } from '@/components/ui/button';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
 import { Progress } from "@/components/ui/progress";
-import FollowUpQuestions from '@/components/ui/FollowUpQuestions';
 import QuestionCard from '@/components/questions/QuestionCard';
 import { Question as TaxQuestion } from '@/context/TaxOrganizerContext';
-
-interface MissingDocument {
-  name: string;
-  description: string;
-  formNumber?: string;
-  requiredFor?: string;
-}
+import { generateLocalQuestions, GeneratedQuestion } from '@/utils/questionGenerator';
 
 interface CustomQuestion {
   id: string;
@@ -32,23 +19,15 @@ interface CustomQuestion {
   categoryId: string;
   options: string[];
   answer?: string | null;
-  missingDocument?: MissingDocument | null;
+  missingDocument?: {
+    name: string;
+    description: string;
+    formNumber?: string;
+    requiredFor?: string;
+  } | null;
   followUpQuestions?: {
     [answer: string]: CustomQuestion[];
   };
-}
-
-// Using TaxQuestion alias for clarity to distinguish from the internal Question interface
-interface Question {
-  id: string;
-  text: string;
-  categoryId: string;
-  options: string[];
-  missingDocument?: MissingDocument | null;
-  followUpQuestions?: {
-    [answer: string]: CustomQuestion[];
-  };
-  answer: string | null;
 }
 
 const Questions: React.FC = () => {
@@ -64,13 +43,52 @@ const Questions: React.FC = () => {
   const [expandedQuestions, setExpandedQuestions] = useState<Set<string>>(new Set());
   const [retryCount, setRetryCount] = useState(0);
   const [isFetchFailed, setIsFetchFailed] = useState(false);
+  const [useLocalQuestions, setUseLocalQuestions] = useState(false);
+  
+  // Generate local questions as a fallback
+  const localQuestions = useMemo(() => {
+    return generateLocalQuestions(
+      state.categories,
+      state.documents,
+      state.extractedFields
+    );
+  }, [state.categories, state.documents, state.extractedFields]);
 
   const fetchPersonalizedQuestions = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     setIsFetchFailed(false);
+    
+    // Set a timeout to fall back to local questions if API takes too long
+    const timeoutId = setTimeout(() => {
+      console.log("API request timeout - using local questions generator");
+      setUseLocalQuestions(true);
+      setCustomQuestions(localQuestions);
+      setIsLoading(false);
+      
+      // Register all local questions in state
+      localQuestions.forEach(question => {
+        dispatch({ 
+          type: 'ANSWER_QUESTION', 
+          payload: { id: question.id, answer: '' } 
+        });
+      });
+      
+      toast({
+        title: "Using locally generated questions",
+        description: "Personalized questions are taking too long to load, so we've generated questions based on your selections.",
+        variant: "default",
+      });
+    }, 8000); // 8 second timeout
 
     try {
+      if (useLocalQuestions) {
+        // Skip API call if we're already using local questions
+        setCustomQuestions(localQuestions);
+        setIsLoading(false);
+        return;
+      }
+      
       // Get all selected categories with their subcategories
       const selectedCategories = state.categories.filter(cat => cat.selected).map(category => {
         // Include quantity information for subcategories
@@ -121,12 +139,7 @@ const Questions: React.FC = () => {
         categoryId: q.categoryId
       })).filter(q => q.answer !== null && q.answer !== '');
 
-      // Set a timeout to prevent infinite loading
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Request timeout')), 15000);
-      });
-
-      const fetchPromise = supabase.functions.invoke('generate-tax-questions', {
+      const { data, error } = await supabase.functions.invoke('generate-tax-questions', {
         body: { 
           selectedCategories, 
           documents, 
@@ -136,12 +149,8 @@ const Questions: React.FC = () => {
         }
       });
 
-      const { data, error } = await Promise.race([
-        fetchPromise,
-        timeoutPromise.then(() => {
-          throw new Error('Request timeout after 15 seconds');
-        })
-      ]) as any;
+      // Clear the timeout since we got a response
+      clearTimeout(timeoutId);
 
       if (error) {
         console.error('Error calling generate-tax-questions:', error);
@@ -156,46 +165,54 @@ const Questions: React.FC = () => {
           id: q.id || uuidv4()
         }));
         
-        setCustomQuestions(processedQuestions);
+        if (processedQuestions.length === 0) {
+          console.log("No questions returned from API, using local questions");
+          setUseLocalQuestions(true);
+          setCustomQuestions(localQuestions);
+        } else {
+          setCustomQuestions(processedQuestions);
+        }
         
-        processedQuestions.forEach(question => {
+        // Register all questions in state
+        const questionsToRegister = processedQuestions.length > 0 ? processedQuestions : localQuestions;
+        questionsToRegister.forEach(question => {
           dispatch({ 
             type: 'ANSWER_QUESTION', 
             payload: { id: question.id, answer: '' } 
           });
         });
-
-        if (processedQuestions.length === 0) {
-          setError("No relevant questions were generated. Please try selecting more categories or uploading more documents.");
-        }
       } else {
         throw new Error("Invalid response format from generate-tax-questions function");
       }
     } catch (err) {
       console.error("Failed to fetch personalized questions:", err);
-      setError(`Failed to generate personalized questions. Please try again.`);
+      setError(`Failed to generate personalized questions. Using locally generated questions.`);
       setIsFetchFailed(true);
+      setUseLocalQuestions(true);
       
-      // Use default questions as fallback
-      const defaultQuestions = taxQuestions.map(q => ({
-        id: q.id,
-        text: q.text,
-        categoryId: q.categoryId,
-        options: q.options || ["Yes", "No"]
-      }));
+      // Use local questions as fallback
+      setCustomQuestions(localQuestions);
       
-      setCustomQuestions(defaultQuestions);
-      
-      defaultQuestions.forEach(question => {
+      localQuestions.forEach(question => {
         dispatch({ 
           type: 'ANSWER_QUESTION', 
           payload: { id: question.id, answer: '' } 
         });
       });
+      
+      // Show a toast notification
+      toast({
+        title: "Using locally generated questions",
+        description: "We couldn't connect to our AI service, so we've generated questions based on your selections.",
+        variant: "default",
+      });
+      
+      // Clear the timeout if we caught an error
+      clearTimeout(timeoutId);
     } finally {
       setIsLoading(false);
     }
-  }, [state.categories, state.documents, state.extractedFields, state.questions, dispatch, retryCount]);
+  }, [state.categories, state.documents, state.extractedFields, state.questions, dispatch, retryCount, localQuestions, useLocalQuestions, toast]);
 
   useEffect(() => {
     fetchPersonalizedQuestions();
@@ -293,6 +310,8 @@ const Questions: React.FC = () => {
     setActiveQuestion(0);
     setDisplayedFollowUps({});
     setExpandedQuestions(new Set());
+    setUseLocalQuestions(false); // Try API again
+    
     toast({
       title: "Refreshing questions",
       description: "Generating new questions based on your selections.",
@@ -341,27 +360,6 @@ const Questions: React.FC = () => {
     return expandedQuestions.has(questionId);
   };
 
-  const convertToQuestions = (customQuestions: CustomQuestion[]): TaxQuestion[] => {
-    const convertQuestion = (q: CustomQuestion): TaxQuestion => {
-      let processedFollowUps: { [answer: string]: TaxQuestion[] } | undefined;
-      
-      if (q.followUpQuestions) {
-        processedFollowUps = {};
-        Object.entries(q.followUpQuestions).forEach(([key, questions]) => {
-          processedFollowUps![key] = questions.map(nestedQ => convertQuestion(nestedQ));
-        });
-      }
-      
-      return {
-        ...q,
-        answer: q.answer || null,
-        followUpQuestions: processedFollowUps
-      };
-    };
-    
-    return customQuestions.map(convertQuestion);
-  };
-
   return (
     <Layout>
       <div className="max-w-3xl mx-auto relative">
@@ -371,6 +369,11 @@ const Questions: React.FC = () => {
           <h1 className="text-2xl font-bold mb-2 text-gray-800">Personalized Tax Questions</h1>
           <p className="text-gray-600">
             Based on your tax situation, we have some specific questions to help maximize your refund.
+            {useLocalQuestions && !isLoading && (
+              <span className="block mt-1 text-xs text-amber-600">
+                Using locally generated questions based on your selections.
+              </span>
+            )}
           </p>
         </AnimatedCard>
         
@@ -388,7 +391,8 @@ const Questions: React.FC = () => {
                 disabled={isLoading}
                 className="flex items-center gap-1"
               >
-                {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Refresh"}
+                {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                <span className="ml-1">Refresh</span>
               </Button>
             </div>
           </div>
@@ -396,23 +400,23 @@ const Questions: React.FC = () => {
           <Progress value={progress} className="h-2 mb-6" />
           
           {isLoading ? (
-            <div className="flex flex-col items-center justify-center py-12 bg-white rounded-xl shadow">
-              <Loader2 className="h-10 w-10 text-tax-blue animate-spin" />
-              <p className="mt-4 text-gray-600">Generating personalized tax questions...</p>
-            </div>
-          ) : error ? (
-            <div className="flex flex-col items-center justify-center py-12 bg-white rounded-xl shadow">
-              <AlertCircle className="h-10 w-10 text-amber-500" />
-              <p className="mt-4 text-gray-600">{error}</p>
-              <Button 
-                variant="default"
-                onClick={handleRefreshQuestions}
-                className="mt-4"
-              >
-                Try Again
-              </Button>
-            </div>
-          ) : currentQuestion ? (
+            <QuestionCard
+              question={{
+                id: "loading",
+                text: "Loading personalized tax questions...",
+                categoryId: "loading",
+                options: ["Loading..."]
+              }}
+              categoryName="Loading"
+              onAnswer={() => {}}
+              isExpanded={false}
+              followUpQuestions={[]}
+              parentAnswers={new Map()}
+              currentAnswer={null}
+              onUploadMissingDocument={() => {}}
+              isLoading={true}
+            />
+          ) : customQuestions.length > 0 && currentQuestion ? (
             <QuestionCard
               question={currentQuestion}
               categoryName={state.categories.find(c => c.id === currentQuestion.categoryId)?.name}
