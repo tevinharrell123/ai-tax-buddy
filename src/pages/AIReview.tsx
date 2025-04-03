@@ -21,6 +21,35 @@ import {
   TableRow,
 } from "@/components/ui/table"
 
+const prioritizeSourceForPersonalInfo = (fields) => {
+  const fieldsByName = {};
+  fields.forEach(field => {
+    if (!fieldsByName[field.name]) {
+      fieldsByName[field.name] = [];
+    }
+    fieldsByName[field.name].push(field);
+  });
+  
+  Object.keys(fieldsByName).forEach(name => {
+    if (fieldsByName[name].length > 1) {
+      const from1040 = fieldsByName[name].find(f => 
+        f.originalValue && (f.originalValue.includes('1040') || f.originalValue.includes('tax'))
+      );
+      
+      const fromID = fieldsByName[name].find(f => 
+        f.originalValue && (f.originalValue.includes('license') || f.originalValue.includes('id') || 
+        f.originalValue.includes('passport'))
+      );
+      
+      if (from1040 && fromID) {
+        fromID.isDuplicate = true;
+      }
+    }
+  });
+  
+  return fields.filter(field => !field.isDuplicate);
+};
+
 const AIReview: React.FC = () => {
   const { state, dispatch } = useTaxOrganizer();
   const [editingField, setEditingField] = useState<string | null>(null);
@@ -76,43 +105,17 @@ const AIReview: React.FC = () => {
     const categoryFields = fieldsByCategory[activeTab] || [];
     
     if (activeTab === "Personal Information" || activeTab === "Personal Identification Information") {
-      prioritizeSourceForPersonalInfo(categoryFields);
+      currentFields = prioritizeSourceForPersonalInfo(categoryFields).slice(
+        currentSection * fieldsPerSection, 
+        (currentSection + 1) * fieldsPerSection
+      );
+    } else {
+      currentFields = categoryFields.slice(
+        currentSection * fieldsPerSection, 
+        (currentSection + 1) * fieldsPerSection
+      );
     }
-    
-    currentFields = categoryFields.slice(
-      currentSection * fieldsPerSection, 
-      (currentSection + 1) * fieldsPerSection
-    );
   }
-  
-  const prioritizeSourceForPersonalInfo = (fields) => {
-    const fieldsByName = {};
-    fields.forEach(field => {
-      if (!fieldsByName[field.name]) {
-        fieldsByName[field.name] = [];
-      }
-      fieldsByName[field.name].push(field);
-    });
-    
-    Object.keys(fieldsByName).forEach(name => {
-      if (fieldsByName[name].length > 1) {
-        const from1040 = fieldsByName[name].find(f => 
-          f.originalValue && (f.originalValue.includes('1040') || f.originalValue.includes('tax'))
-        );
-        
-        const fromID = fieldsByName[name].find(f => 
-          f.originalValue && (f.originalValue.includes('license') || f.originalValue.includes('id') || 
-          f.originalValue.includes('passport'))
-        );
-        
-        if (from1040 && fromID) {
-          fromID.isDuplicate = true;
-        }
-      }
-    });
-    
-    return fields.filter(field => !field.isDuplicate);
-  };
   
   const totalFields = activeTab === "all" 
     ? state.extractedFields.length 
