@@ -3,10 +3,12 @@ import React from 'react';
 import { useTaxOrganizer } from '../../context/TaxOrganizerContext';
 import { Check } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
+import { useLayoutNavigation } from '../../hooks/useLayoutNavigation';
 
 const ProgressBar: React.FC = () => {
   const { state } = useTaxOrganizer();
   const location = useLocation();
+  const { navigateToStep } = useLayoutNavigation();
   
   const steps = [
     { id: 1, name: 'Upload', path: '/' },
@@ -20,15 +22,29 @@ const ProgressBar: React.FC = () => {
   // Helper function to determine if a step is active based on the current path
   const isStepActive = (path: string) => location.pathname === path;
 
+  const handleStepClick = (step: number) => {
+    // Only allow navigation to completed steps or the current step
+    if (state.completedSteps.includes(step) || step === state.step) {
+      navigateToStep(step);
+    }
+  };
+
   return (
     <div className="w-full py-4 px-6">
       <div className="flex justify-between mb-2">
         {steps.map((step) => (
-          <div 
-            key={step.id} 
+          <button
+            key={step.id}
+            onClick={() => handleStepClick(step.id)}
+            disabled={!state.completedSteps.includes(step.id) && step.id !== state.step}
+            aria-label={`Go to ${step.name}`}
             className={`flex flex-col items-center relative ${
               step.id <= state.step ? 'text-tax-blue' : 'text-gray-400'
-            } ${isStepActive(step.path) ? 'text-tax-blue font-medium' : ''}`}
+            } ${isStepActive(step.path) ? 'text-tax-blue font-medium' : ''} ${
+              state.completedSteps.includes(step.id) || step.id === state.step 
+                ? 'cursor-pointer hover:opacity-80' 
+                : 'cursor-not-allowed'
+            }`}
           >
             <div 
               className={`w-9 h-9 rounded-full flex items-center justify-center transition-all ${
@@ -50,7 +66,7 @@ const ProgressBar: React.FC = () => {
             }`}>
               {step.name}
             </span>
-          </div>
+          </button>
         ))}
       </div>
       

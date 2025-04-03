@@ -31,12 +31,32 @@ const StepIndicators: React.FC = () => {
   const { state } = useTaxOrganizer();
   const { navigateToStep } = useLayoutNavigation();
 
+  // Define step labels for better accessibility
+  const stepLabels = [
+    "Upload Documents", 
+    "Import Options", 
+    "Categories", 
+    "Review", 
+    "Questions", 
+    "Summary"
+  ];
+
+  const handleStepClick = (step: number) => {
+    // Only allow navigation to completed steps or the current step
+    if (state.completedSteps.includes(step) || step === state.step) {
+      navigateToStep(step);
+    }
+  };
+
   return (
     <div className="hidden md:flex items-center gap-3">
       {[1, 2, 3, 4, 5, 6].map((step) => (
-        <div 
-          key={step} 
-          onClick={() => navigateToStep(step)}
+        <button
+          key={step}
+          onClick={() => handleStepClick(step)}
+          aria-label={`Go to ${stepLabels[step - 1]}`}
+          title={stepLabels[step - 1]}
+          disabled={!state.completedSteps.includes(step) && step !== state.step}
           className={`progress-step flex items-center justify-center w-9 h-9 rounded-full transition-all ${
             step < state.step 
               ? 'bg-tax-blue text-white shadow-md cursor-pointer'
@@ -45,10 +65,10 @@ const StepIndicators: React.FC = () => {
                 : state.completedSteps.includes(step)
                   ? 'bg-tax-blue text-white shadow-md cursor-pointer'
                   : 'bg-gray-100 text-gray-400'
-          } ${state.completedSteps.includes(step) || step === state.step ? 'hover:scale-110 cursor-pointer' : ''}`}
+          } ${state.completedSteps.includes(step) || step === state.step ? 'hover:scale-110' : ''}`}
         >
           {step < state.step ? <Check size={16} /> : step}
-        </div>
+        </button>
       ))}
     </div>
   );
