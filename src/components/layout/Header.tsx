@@ -33,7 +33,7 @@ const StepIndicators: React.FC = () => {
 
   return (
     <div className="hidden md:flex items-center gap-3">
-      {[1, 2, 3, 4, 5].map((step) => (
+      {[1, 2, 3, 4, 5, 6].map((step) => (
         <div 
           key={step} 
           onClick={() => navigateToStep(step)}

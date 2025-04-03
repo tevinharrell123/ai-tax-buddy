@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { TaxOrganizerProvider } from "./context/TaxOrganizerContext";
 import Welcome from "./pages/Welcome";
+import ImportOptions from "./pages/ImportOptions";
 import AIReview from "./pages/AIReview";
 import DocumentHighlight from "./pages/DocumentHighlight";
 import Categories from "./pages/Categories";
@@ -29,6 +30,11 @@ const App = () => (
             <Route path="/" element={
               <ProtectedRoute>
                 <Welcome />
+              </ProtectedRoute>
+            } />
+            <Route path="/import-options" element={
+              <ProtectedRoute>
+                <ImportOptions />
               </ProtectedRoute>
             } />
             <Route path="/review" element={

@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useTaxOrganizer } from '../context/TaxOrganizerContext';
 import Layout from '../components/layout/Layout';
@@ -32,7 +31,7 @@ const Welcome: React.FC = () => {
     }
   }, []);
 
-  const processDocuments = async () => {
+  const handleNextStep = () => {
     if (state.documents.length === 0) {
       toast({
         title: "No Documents Found",
@@ -42,75 +41,7 @@ const Welcome: React.FC = () => {
       return;
     }
     
-    setShowAIModal(true);
-    setLoading(true);
-    
-    try {
-      // Instead of processing the documents via Edge Function, let's simulate a successful response
-      // This is a mock to bypass the Edge Function error
-      console.log("Processing documents:", state.documents);
-      
-      // Simulate processing time
-      await new Promise(resolve => setTimeout(resolve, 3000));
-      
-      // Create mock extracted fields based on document categories - now with the correct structure
-      const extractedFields = state.documents.map(doc => {
-        if (doc.category === 'identification') {
-          return {
-            id: uuidv4(),
-            name: 'full_name',
-            value: 'Sample Name',
-            isCorrect: null,
-            originalValue: 'Sample Name',
-            category: 'personal'
-          };
-        } else if (doc.category === 'tax-forms') {
-          return {
-            id: uuidv4(),
-            name: 'wages',
-            value: '75000',
-            isCorrect: null,
-            originalValue: '75000',
-            category: 'income'
-          };
-        }
-        return {
-          id: uuidv4(),
-          name: doc.name,
-          value: 'Document processed',
-          isCorrect: null,
-          originalValue: 'Document processed',
-          category: 'other'
-        };
-      });
-      
-      dispatch({ 
-        type: 'SET_EXTRACTED_FIELDS', 
-        payload: extractedFields
-      });
-      
-      dispatch({ type: 'MARK_STEP_COMPLETED', payload: 1 });
-      dispatch({ type: 'SET_STEP', payload: 2 });
-      
-      setShowAIModal(false);
-      navigate('/review');
-      
-      toast({
-        title: "Scan Complete!",
-        description: "We've extracted information from your documents using Claude AI. Please review for accuracy.",
-        variant: "success",
-      });
-    } catch (error) {
-      console.error('Error processing documents:', error);
-      setShowAIModal(false);
-      toast({
-        title: "Processing Error",
-        description: "There was an error processing your documents. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
+    navigate('/import-options');
   };
 
   const handleSignOut = async () => {
@@ -122,7 +53,7 @@ const Welcome: React.FC = () => {
     <Layout 
       showBackButton={false}
       disableNext={state.documents.length === 0 || loading}
-      onNext={processDocuments}
+      onNext={handleNextStep}
       nextButtonText="Next"
     >
       <div className="relative max-w-4xl mx-auto">

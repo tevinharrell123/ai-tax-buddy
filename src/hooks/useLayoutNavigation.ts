@@ -16,15 +16,18 @@ export const useLayoutNavigation = () => {
       // Navigate based on step
       switch (state.step) {
         case 1:
-          navigate('/review');
+          navigate('/import-options');
           break;
         case 2:
-          navigate('/categories');
+          navigate('/review');
           break;
         case 3:
-          navigate('/questions');
+          navigate('/categories');
           break;
         case 4:
+          navigate('/questions');
+          break;
+        case 5:
           navigate('/summary');
           break;
         default:
@@ -45,12 +48,15 @@ export const useLayoutNavigation = () => {
           navigate('/');
           break;
         case 3:
-          navigate('/review');
+          navigate('/import-options');
           break;
         case 4:
-          navigate('/categories');
+          navigate('/review');
           break;
         case 5:
+          navigate('/categories');
+          break;
+        case 6:
           navigate('/questions');
           break;
         default:
@@ -70,15 +76,18 @@ export const useLayoutNavigation = () => {
           navigate('/');
           break;
         case 2:
-          navigate('/review');
+          navigate('/import-options');
           break;
         case 3:
-          navigate('/categories');
+          navigate('/review');
           break;
         case 4:
-          navigate('/questions');
+          navigate('/categories');
           break;
         case 5:
+          navigate('/questions');
+          break;
+        case 6:
           navigate('/summary');
           break;
         default:
