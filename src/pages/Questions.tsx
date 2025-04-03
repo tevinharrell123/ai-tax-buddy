@@ -1,16 +1,30 @@
 
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useTaxOrganizer } from '../context/TaxOrganizerContext';
 import Layout from '../components/layout/Layout';
 import AnimatedCard from '../components/ui/AnimatedCard';
-import { Check, ChevronRight, ChevronLeft, AlertCircle, Upload, Loader2, RefreshCw } from 'lucide-react';
+import { Check, ChevronRight, ChevronLeft, AlertCircle, Upload, Loader2 } from 'lucide-react';
+import { taxQuestions } from '../data/taxCategories';
+import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { v4 as uuidv4 } from 'uuid';
 import { Button } from '@/components/ui/button';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Progress } from "@/components/ui/progress";
+import FollowUpQuestions from '@/components/ui/FollowUpQuestions';
 import QuestionCard from '@/components/questions/QuestionCard';
 import { Question as TaxQuestion } from '@/context/TaxOrganizerContext';
-import { generateLocalQuestions, GeneratedQuestion } from '@/utils/questionGenerator';
+
+interface MissingDocument {
+  name: string;
+  description: string;
+  formNumber?: string;
+  requiredFor?: string;
+}
 
 interface CustomQuestion {
   id: string;
@@ -18,15 +32,23 @@ interface CustomQuestion {
   categoryId: string;
   options: string[];
   answer?: string | null;
-  missingDocument?: {
-    name: string;
-    description: string;
-    formNumber?: string;
-    requiredFor?: string;
-  } | null;
+  missingDocument?: MissingDocument | null;
   followUpQuestions?: {
     [answer: string]: CustomQuestion[];
   };
+}
+
+// Using TaxQuestion alias for clarity to distinguish from the internal Question interface
+interface Question {
+  id: string;
+  text: string;
+  categoryId: string;
+  options: string[];
+  missingDocument?: MissingDocument | null;
+  followUpQuestions?: {
+    [answer: string]: CustomQuestion[];
+  };
+  answer: string | null;
 }
 
 const Questions: React.FC = () => {
@@ -40,87 +62,144 @@ const Questions: React.FC = () => {
   const [parentAnswers] = useState(new Map<string, string>());
   const [displayedFollowUps, setDisplayedFollowUps] = useState<{[questionId: string]: CustomQuestion[]}>({});
   const [expandedQuestions, setExpandedQuestions] = useState<Set<string>>(new Set());
-  
-  // Generate local questions
-  const localQuestions = useMemo(() => {
-    console.log("Generating local questions");
-    return generateLocalQuestions(
-      state.categories,
-      state.documents,
-      state.extractedFields
-    );
-  }, [state.categories, state.documents, state.extractedFields]);
+  const [retryCount, setRetryCount] = useState(0);
+  const [isFetchFailed, setIsFetchFailed] = useState(false);
 
-  // Always use local questions - avoid API call completely
-  useEffect(() => {
-    const loadLocalQuestions = () => {
-      try {
-        console.log("Using local questions:", localQuestions);
+  const fetchPersonalizedQuestions = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    setIsFetchFailed(false);
+
+    try {
+      // Get all selected categories with their subcategories
+      const selectedCategories = state.categories.filter(cat => cat.selected).map(category => {
+        // Include quantity information for subcategories
+        return {
+          ...category,
+          subcategories: category.subcategories?.filter(sub => sub.selected)
+        };
+      });
+      
+      // Format documents with more detail
+      const documents = state.documents.map(doc => ({
+        id: doc.id,
+        name: doc.name,
+        type: doc.type,
+        category: doc.category,
+        status: doc.status
+      }));
+
+      // Include extracted fields for context
+      const extractedFields = state.extractedFields.map(field => ({
+        id: field.id,
+        name: field.name,
+        value: field.value,
+        category: field.category
+      }));
+
+      // Create a mapping of category selections
+      const categoryAnswers = selectedCategories.map(cat => {
+        const subcategoriesInfo = cat.subcategories?.map(sub => ({
+          id: sub.id,
+          name: sub.name,
+          quantity: sub.quantity || 1
+        })) || [];
         
-        if (!localQuestions || localQuestions.length === 0) {
-          // If no local questions available, create some default ones
-          const defaultQuestions = [
-            {
-              id: uuidv4(),
-              text: "What is your filing status for this tax year?",
-              categoryId: "general",
-              options: ["Single", "Married filing jointly", "Married filing separately", "Head of household", "Qualifying widow(er)"]
-            },
-            {
-              id: uuidv4(),
-              text: "Did you have any dependents in the tax year?",
-              categoryId: "general",
-              options: ["No", "Yes, one dependent", "Yes, multiple dependents"]
-            }
-          ];
-          
-          setCustomQuestions(defaultQuestions);
-          
-          // Register default questions in state
-          defaultQuestions.forEach(question => {
-            dispatch({ 
-              type: 'ANSWER_QUESTION', 
-              payload: { id: question.id, answer: '' } 
-            });
-          });
-        } else {
-          setCustomQuestions(localQuestions);
-          
-          // Register all local questions in state
-          localQuestions.forEach(question => {
-            dispatch({ 
-              type: 'ANSWER_QUESTION', 
-              payload: { id: question.id, answer: '' } 
-            });
-          });
+        return {
+          categoryId: cat.id,
+          categoryName: cat.name,
+          selected: true,
+          subcategories: subcategoriesInfo
+        };
+      });
+
+      // Include previous question answers
+      const previousAnswers = state.questions.map(q => ({
+        questionId: q.id,
+        questionText: q.text,
+        answer: q.answer,
+        categoryId: q.categoryId
+      })).filter(q => q.answer !== null && q.answer !== '');
+
+      // Set a timeout to prevent infinite loading
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Request timeout')), 15000);
+      });
+
+      const fetchPromise = supabase.functions.invoke('generate-tax-questions', {
+        body: { 
+          selectedCategories, 
+          documents, 
+          extractedFields,
+          categoryAnswers,
+          previousAnswers
         }
-      } catch (err) {
-        console.error("Error loading questions:", err);
-        setError("Error loading questions. Please try refreshing the page.");
-        
-        // Ensure we still have some questions to show
-        const fallbackQuestions = [
-          {
-            id: uuidv4(),
-            text: "What is your filing status for this tax year?",
-            categoryId: "general",
-            options: ["Single", "Married filing jointly", "Married filing separately", "Head of household", "Qualifying widow(er)"]
-          }
-        ];
-        
-        setCustomQuestions(fallbackQuestions);
-      } finally {
-        setIsLoading(false);
+      });
+
+      const { data, error } = await Promise.race([
+        fetchPromise,
+        timeoutPromise.then(() => {
+          throw new Error('Request timeout after 15 seconds');
+        })
+      ]) as any;
+
+      if (error) {
+        console.error('Error calling generate-tax-questions:', error);
+        throw new Error(`Error calling generate-tax-questions: ${error.message}`);
       }
-    };
-    
-    // Short timeout to give the impression that we're loading questions
-    const timer = setTimeout(() => {
-      loadLocalQuestions();
-    }, 1000);
-    
-    return () => clearTimeout(timer);
-  }, [localQuestions, dispatch]);
+
+      if (data?.questions && Array.isArray(data.questions)) {
+        console.log("Received custom questions:", data.questions);
+        
+        const processedQuestions = data.questions.map(q => ({
+          ...q,
+          id: q.id || uuidv4()
+        }));
+        
+        setCustomQuestions(processedQuestions);
+        
+        processedQuestions.forEach(question => {
+          dispatch({ 
+            type: 'ANSWER_QUESTION', 
+            payload: { id: question.id, answer: '' } 
+          });
+        });
+
+        if (processedQuestions.length === 0) {
+          setError("No relevant questions were generated. Please try selecting more categories or uploading more documents.");
+        }
+      } else {
+        throw new Error("Invalid response format from generate-tax-questions function");
+      }
+    } catch (err) {
+      console.error("Failed to fetch personalized questions:", err);
+      setError(`Failed to generate personalized questions. Please try again.`);
+      setIsFetchFailed(true);
+      
+      // Use default questions as fallback
+      const defaultQuestions = taxQuestions.map(q => ({
+        id: q.id,
+        text: q.text,
+        categoryId: q.categoryId,
+        options: q.options || ["Yes", "No"]
+      }));
+      
+      setCustomQuestions(defaultQuestions);
+      
+      defaultQuestions.forEach(question => {
+        dispatch({ 
+          type: 'ANSWER_QUESTION', 
+          payload: { id: question.id, answer: '' } 
+        });
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  }, [state.categories, state.documents, state.extractedFields, state.questions, dispatch, retryCount]);
+
+  useEffect(() => {
+    fetchPersonalizedQuestions();
+  }, [fetchPersonalizedQuestions]);
 
   const createConfetti = () => {
     setShowConfetti(true);
@@ -210,27 +289,14 @@ const Questions: React.FC = () => {
   };
 
   const handleRefreshQuestions = () => {
+    setRetryCount(prev => prev + 1);
     setActiveQuestion(0);
     setDisplayedFollowUps({});
     setExpandedQuestions(new Set());
-    setIsLoading(true);
-    
     toast({
       title: "Refreshing questions",
       description: "Generating new questions based on your selections.",
     });
-    
-    setTimeout(() => {
-      setCustomQuestions(localQuestions);
-      // Register all local questions in state
-      localQuestions.forEach(question => {
-        dispatch({ 
-          type: 'ANSWER_QUESTION', 
-          payload: { id: question.id, answer: '' } 
-        });
-      });
-      setIsLoading(false);
-    }, 1000);
   };
 
   const handleUploadMissingDocument = () => {
@@ -246,11 +312,6 @@ const Questions: React.FC = () => {
   };
 
   const currentQuestion = customQuestions[activeQuestion];
-  
-  // Safety check to ensure we don't try to access an invalid question
-  if (currentQuestion === undefined && customQuestions.length > 0 && activeQuestion >= customQuestions.length) {
-    setActiveQuestion(0);
-  }
   
   // Calculate answered count including follow-up questions
   const allQuestionIds = new Set<string>();
@@ -280,6 +341,27 @@ const Questions: React.FC = () => {
     return expandedQuestions.has(questionId);
   };
 
+  const convertToQuestions = (customQuestions: CustomQuestion[]): TaxQuestion[] => {
+    const convertQuestion = (q: CustomQuestion): TaxQuestion => {
+      let processedFollowUps: { [answer: string]: TaxQuestion[] } | undefined;
+      
+      if (q.followUpQuestions) {
+        processedFollowUps = {};
+        Object.entries(q.followUpQuestions).forEach(([key, questions]) => {
+          processedFollowUps![key] = questions.map(nestedQ => convertQuestion(nestedQ));
+        });
+      }
+      
+      return {
+        ...q,
+        answer: q.answer || null,
+        followUpQuestions: processedFollowUps
+      };
+    };
+    
+    return customQuestions.map(convertQuestion);
+  };
+
   return (
     <Layout>
       <div className="max-w-3xl mx-auto relative">
@@ -306,8 +388,7 @@ const Questions: React.FC = () => {
                 disabled={isLoading}
                 className="flex items-center gap-1"
               >
-                {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-                <span className="ml-1">Refresh</span>
+                {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Refresh"}
               </Button>
             </div>
           </div>
@@ -315,23 +396,23 @@ const Questions: React.FC = () => {
           <Progress value={progress} className="h-2 mb-6" />
           
           {isLoading ? (
-            <QuestionCard
-              question={{
-                id: "loading",
-                text: "Loading personalized tax questions...",
-                categoryId: "loading",
-                options: ["Loading..."]
-              }}
-              categoryName="Loading"
-              onAnswer={() => {}}
-              isExpanded={false}
-              followUpQuestions={[]}
-              parentAnswers={new Map()}
-              currentAnswer={null}
-              onUploadMissingDocument={() => {}}
-              isLoading={true}
-            />
-          ) : customQuestions.length > 0 && currentQuestion ? (
+            <div className="flex flex-col items-center justify-center py-12 bg-white rounded-xl shadow">
+              <Loader2 className="h-10 w-10 text-tax-blue animate-spin" />
+              <p className="mt-4 text-gray-600">Generating personalized tax questions...</p>
+            </div>
+          ) : error ? (
+            <div className="flex flex-col items-center justify-center py-12 bg-white rounded-xl shadow">
+              <AlertCircle className="h-10 w-10 text-amber-500" />
+              <p className="mt-4 text-gray-600">{error}</p>
+              <Button 
+                variant="default"
+                onClick={handleRefreshQuestions}
+                className="mt-4"
+              >
+                Try Again
+              </Button>
+            </div>
+          ) : currentQuestion ? (
             <QuestionCard
               question={currentQuestion}
               categoryName={state.categories.find(c => c.id === currentQuestion.categoryId)?.name}
