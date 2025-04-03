@@ -65,7 +65,7 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
     };
   };
 
-  const convertedFollowUps: Question[] = followUpQuestions.map(convertToQuestion);
+  const convertedFollowUps: Question[] = followUpQuestions?.map(convertToQuestion) || [];
 
   return (
     <AnimatedCard key={question.id} className="min-h-[300px] flex flex-col">

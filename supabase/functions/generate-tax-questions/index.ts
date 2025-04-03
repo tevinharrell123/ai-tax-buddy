@@ -129,7 +129,7 @@ Output valid JSON in this format:
       
       // Set timeout to avoid waiting too long for the API
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      const timeoutId = setTimeout(() => controller.abort(), 8000); // Increased timeout to 8 seconds
       
       try {
         const response = await fetch('https://api.anthropic.com/v1/messages', {
@@ -250,7 +250,7 @@ Output valid JSON in this format:
     
     return new Response(
       JSON.stringify({ questions: fallbackQuestions }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 });
@@ -403,7 +403,7 @@ function generateDefaultQuestions(selectedCategories = [], documents = [], extra
   }
 
   // If we still don't have at least 3 questions, add some general ones
-  if (questions.length < 3) {
+  if (questions.length < 2) {
     questions.push({
       "id": generateId(),
       "text": "Did you work remotely at any point during the tax year?",

@@ -62,10 +62,13 @@ const Questions: React.FC = () => {
   const [parentAnswers] = useState(new Map<string, string>());
   const [displayedFollowUps, setDisplayedFollowUps] = useState<{[questionId: string]: CustomQuestion[]}>({});
   const [expandedQuestions, setExpandedQuestions] = useState<Set<string>>(new Set());
+  const [retryCount, setRetryCount] = useState(0);
+  const [isFetchFailed, setIsFetchFailed] = useState(false);
 
   const fetchPersonalizedQuestions = useCallback(async () => {
     setIsLoading(true);
     setError(null);
+    setIsFetchFailed(false);
 
     try {
       // Get all selected categories with their subcategories
@@ -118,7 +121,12 @@ const Questions: React.FC = () => {
         categoryId: q.categoryId
       })).filter(q => q.answer !== null && q.answer !== '');
 
-      const { data, error } = await supabase.functions.invoke('generate-tax-questions', {
+      // Set a timeout to prevent infinite loading
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Request timeout')), 15000);
+      });
+
+      const fetchPromise = supabase.functions.invoke('generate-tax-questions', {
         body: { 
           selectedCategories, 
           documents, 
@@ -128,7 +136,15 @@ const Questions: React.FC = () => {
         }
       });
 
+      const { data, error } = await Promise.race([
+        fetchPromise,
+        timeoutPromise.then(() => {
+          throw new Error('Request timeout after 15 seconds');
+        })
+      ]) as any;
+
       if (error) {
+        console.error('Error calling generate-tax-questions:', error);
         throw new Error(`Error calling generate-tax-questions: ${error.message}`);
       }
 
@@ -157,8 +173,10 @@ const Questions: React.FC = () => {
       }
     } catch (err) {
       console.error("Failed to fetch personalized questions:", err);
-      setError(`Failed to generate personalized questions: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      setError(`Failed to generate personalized questions. Please try again.`);
+      setIsFetchFailed(true);
       
+      // Use default questions as fallback
       const defaultQuestions = taxQuestions.map(q => ({
         id: q.id,
         text: q.text,
@@ -177,7 +195,7 @@ const Questions: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [state.categories, state.documents, state.extractedFields, state.questions, dispatch]);
+  }, [state.categories, state.documents, state.extractedFields, state.questions, dispatch, retryCount]);
 
   useEffect(() => {
     fetchPersonalizedQuestions();
@@ -271,7 +289,7 @@ const Questions: React.FC = () => {
   };
 
   const handleRefreshQuestions = () => {
-    fetchPersonalizedQuestions();
+    setRetryCount(prev => prev + 1);
     setActiveQuestion(0);
     setDisplayedFollowUps({});
     setExpandedQuestions(new Set());
@@ -358,7 +376,9 @@ const Questions: React.FC = () => {
         
         <div className="relative">
           <div className="flex items-center justify-between mb-2">
-            <div className="text-sm text-gray-600">Question {activeQuestion + 1} of {customQuestions.length}</div>
+            <div className="text-sm text-gray-600">
+              {customQuestions.length > 0 && `Question ${activeQuestion + 1} of ${customQuestions.length}`}
+            </div>
             <div className="flex items-center">
               <span className="text-tax-green font-medium mr-2">{answeredCount} answered</span>
               <Button 
@@ -382,7 +402,7 @@ const Questions: React.FC = () => {
             </div>
           ) : error ? (
             <div className="flex flex-col items-center justify-center py-12 bg-white rounded-xl shadow">
-              <AlertCircle className="h-10 w-10 text-red-500" />
+              <AlertCircle className="h-10 w-10 text-amber-500" />
               <p className="mt-4 text-gray-600">{error}</p>
               <Button 
                 variant="default"
@@ -413,6 +433,30 @@ const Questions: React.FC = () => {
                 className="mt-4"
               >
                 Generate Questions
+              </Button>
+            </div>
+          )}
+          
+          {customQuestions.length > 0 && (
+            <div className="flex justify-between mt-6">
+              <Button
+                variant="outline"
+                onClick={() => navigateQuestion('prev')}
+                disabled={activeQuestion === 0}
+                className="flex items-center"
+              >
+                <ChevronLeft className="h-4 w-4 mr-1" />
+                Previous
+              </Button>
+              
+              <Button
+                variant="outline"
+                onClick={() => navigateQuestion('next')}
+                disabled={activeQuestion === customQuestions.length - 1}
+                className="flex items-center"
+              >
+                Next
+                <ChevronRight className="h-4 w-4 ml-1" />
               </Button>
             </div>
           )}
