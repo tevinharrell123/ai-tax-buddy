@@ -3,14 +3,15 @@ import React, { useEffect, useState } from 'react';
 import { useTaxOrganizer } from '../context/TaxOrganizerContext';
 import Layout from '../components/layout/Layout';
 import AnimatedCard from '../components/ui/AnimatedCard';
-import { Check, ChevronDown, ChevronUp, FileText, Edit2, Award } from 'lucide-react';
+import { Check, ChevronDown, ChevronUp, FileText, Award, BadgeCheck } from 'lucide-react';
+import { useToast } from "@/hooks/use-toast";
 
 const Summary: React.FC = () => {
   const { state } = useTaxOrganizer();
+  const { toast } = useToast();
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     documents: true,
     categories: true,
-    highlights: false,
     questions: false,
   });
   const [showFinalConfetti, setShowFinalConfetti] = useState(false);
@@ -20,8 +21,16 @@ const Summary: React.FC = () => {
     setTimeout(() => {
       setShowFinalConfetti(true);
       createFinalConfetti();
+      
+      // Show success toast
+      toast({
+        title: "Tax organizer completed! 🎉",
+        description: "Your information is ready to be sent to your tax professional.",
+        variant: "success",
+        duration: 5000,
+      });
     }, 500);
-  }, []);
+  }, [toast]);
 
   const createFinalConfetti = () => {
     const container = document.getElementById('final-confetti-container');
@@ -65,9 +74,9 @@ const Summary: React.FC = () => {
 
   const getCompletionScore = () => {
     const documentScore = state.documents.length > 0 ? 25 : 0;
-    const fieldScore = state.extractedFields.filter(f => f.isCorrect !== null).length / state.extractedFields.length * 25;
-    const categoryScore = getSelectedCategoriesCount() / Math.min(5, state.categories.length) * 25;
-    const questionScore = getAnsweredQuestionsCount() / Math.min(10, state.questions.length) * 25;
+    const fieldScore = state.extractedFields.filter(f => f.isCorrect !== null).length / Math.max(1, state.extractedFields.length) * 25;
+    const categoryScore = getSelectedCategoriesCount() / Math.max(1, Math.min(5, state.categories.length)) * 25;
+    const questionScore = getAnsweredQuestionsCount() / Math.max(1, Math.min(10, state.questions.length)) * 25;
     
     return Math.min(100, Math.round(documentScore + fieldScore + categoryScore + questionScore));
   };
@@ -75,6 +84,13 @@ const Summary: React.FC = () => {
   const getBadgeCount = () => {
     // Count categories with badges and add base badges
     return state.categories.filter(c => c.badge).length + 2; // +2 for completion & upload badges
+  };
+
+  // Determine if each section is complete
+  const isSectionComplete = {
+    documents: state.documents.length > 0,
+    categories: getSelectedCategoriesCount() > 0,
+    questions: getAnsweredQuestionsCount() > 0
   };
 
   return (
@@ -147,124 +163,123 @@ const Summary: React.FC = () => {
           </AnimatedCard>
         </div>
         
-        <AnimatedCard delay={600}>
+        <AnimatedCard 
+          delay={600} 
+          className={isSectionComplete.documents ? "border-2 border-tax-green" : ""}
+        >
           <div 
             className="flex justify-between items-center p-4 cursor-pointer"
             onClick={() => toggleSection('documents')}
           >
-            <h2 className="text-lg font-semibold">Uploaded Documents</h2>
+            <div className="flex items-center gap-2">
+              <h2 className="text-lg font-semibold">Uploaded Documents</h2>
+              {isSectionComplete.documents && (
+                <BadgeCheck size={20} className="text-tax-green" />
+              )}
+            </div>
             {expandedSections.documents ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
           </div>
           
           {expandedSections.documents && (
             <div className="px-4 pb-4 space-y-3">
-              {state.documents.map(doc => (
-                <div key={doc.id} className="flex items-center bg-gray-50 p-3 rounded-lg">
-                  <div className="bg-gray-100 p-2 rounded mr-3">
-                    <FileText size={18} className="text-gray-500" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium">{doc.name}</p>
-                    <p className="text-xs text-green-600 flex items-center">
-                      <Check size={12} className="mr-1" />
-                      Processed
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </AnimatedCard>
-        
-        <AnimatedCard delay={700} className="mt-4">
-          <div 
-            className="flex justify-between items-center p-4 cursor-pointer"
-            onClick={() => toggleSection('categories')}
-          >
-            <h2 className="text-lg font-semibold">Selected Categories</h2>
-            {expandedSections.categories ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
-          </div>
-          
-          {expandedSections.categories && (
-            <div className="px-4 pb-4">
-              <div className="grid grid-cols-2 gap-3">
-                {state.categories.filter(c => c.selected).map(category => (
-                  <div key={category.id} className="border rounded-lg p-3">
-                    <h3 className="font-medium text-sm mb-2">{category.name}</h3>
-                    <div className="space-y-1">
-                      {category.subcategories?.filter(s => s.selected).map(sub => (
-                        <div key={sub.id} className="flex items-center text-sm text-gray-600">
-                          <Check size={12} className="mr-2 text-tax-green" />
-                          <span>{sub.name}</span>
-                        </div>
-                      ))}
-                      {category.subcategories?.filter(s => s.selected).length === 0 && (
-                        <p className="text-xs text-gray-500">No subcategories selected</p>
-                      )}
+              {state.documents.length > 0 ? (
+                state.documents.map(doc => (
+                  <div key={doc.id} className="flex items-center bg-gray-50 p-3 rounded-lg">
+                    <div className="bg-gray-100 p-2 rounded mr-3">
+                      <FileText size={18} className="text-gray-500" />
                     </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </AnimatedCard>
-        
-        <AnimatedCard delay={800} className="mt-4">
-          <div 
-            className="flex justify-between items-center p-4 cursor-pointer"
-            onClick={() => toggleSection('highlights')}
-          >
-            <h2 className="text-lg font-semibold">Document Highlights</h2>
-            {expandedSections.highlights ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
-          </div>
-          
-          {expandedSections.highlights && (
-            <div className="px-4 pb-4">
-              {state.highlights.length > 0 ? (
-                <div className="grid grid-cols-2 gap-3">
-                  {state.highlights.map(highlight => (
-                    <div 
-                      key={highlight.id} 
-                      className="border rounded-lg p-3"
-                      style={{ borderLeftColor: highlight.color, borderLeftWidth: '4px' }}
-                    >
-                      <p className="font-medium text-sm">{highlight.label}</p>
-                      <p className="text-xs text-gray-500 mt-1">
-                        From: {state.documents.find(d => d.id === highlight.documentId)?.name || 'Unknown document'}
+                    <div>
+                      <p className="text-sm font-medium">{doc.name}</p>
+                      <p className="text-xs text-green-600 flex items-center">
+                        <Check size={12} className="mr-1" />
+                        Processed
                       </p>
                     </div>
-                  ))}
-                </div>
+                  </div>
+                ))
               ) : (
-                <p className="text-gray-500 text-sm">No highlights added</p>
+                <p className="text-gray-500 text-sm">No documents uploaded</p>
               )}
             </div>
           )}
         </AnimatedCard>
         
-        <AnimatedCard delay={900} className="mt-4">
+        <AnimatedCard 
+          delay={700} 
+          className={`mt-4 ${isSectionComplete.categories ? "border-2 border-tax-green" : ""}`}
+        >
+          <div 
+            className="flex justify-between items-center p-4 cursor-pointer"
+            onClick={() => toggleSection('categories')}
+          >
+            <div className="flex items-center gap-2">
+              <h2 className="text-lg font-semibold">Selected Categories</h2>
+              {isSectionComplete.categories && (
+                <BadgeCheck size={20} className="text-tax-green" />
+              )}
+            </div>
+            {expandedSections.categories ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+          </div>
+          
+          {expandedSections.categories && (
+            <div className="px-4 pb-4">
+              {state.categories.filter(c => c.selected).length > 0 ? (
+                <div className="grid grid-cols-2 gap-3">
+                  {state.categories.filter(c => c.selected).map(category => (
+                    <div key={category.id} className="border rounded-lg p-3">
+                      <h3 className="font-medium text-sm mb-2">{category.name}</h3>
+                      <div className="space-y-1">
+                        {category.subcategories?.filter(s => s.selected).map(sub => (
+                          <div key={sub.id} className="flex items-center text-sm text-gray-600">
+                            <Check size={12} className="mr-2 text-tax-green" />
+                            <span>{sub.name}</span>
+                          </div>
+                        ))}
+                        {category.subcategories?.filter(s => s.selected).length === 0 && (
+                          <p className="text-xs text-gray-500">No subcategories selected</p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-gray-500 text-sm">No categories selected</p>
+              )}
+            </div>
+          )}
+        </AnimatedCard>
+        
+        <AnimatedCard 
+          delay={900} 
+          className={`mt-4 ${isSectionComplete.questions ? "border-2 border-tax-green" : ""}`}
+        >
           <div 
             className="flex justify-between items-center p-4 cursor-pointer"
             onClick={() => toggleSection('questions')}
           >
-            <h2 className="text-lg font-semibold">Answered Questions</h2>
+            <div className="flex items-center gap-2">
+              <h2 className="text-lg font-semibold">Answered Questions</h2>
+              {isSectionComplete.questions && (
+                <BadgeCheck size={20} className="text-tax-green" />
+              )}
+            </div>
             {expandedSections.questions ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
           </div>
           
           {expandedSections.questions && (
             <div className="px-4 pb-4 space-y-3">
-              {state.questions.filter(q => q.answer && q.answer !== '').map(question => (
-                <div key={question.id} className="border rounded-lg p-3">
-                  <p className="text-sm font-medium">{question.text}</p>
-                  <div className="flex items-center mt-2">
-                    <div className="bg-tax-lightBlue text-tax-blue px-3 py-1 rounded-full text-xs font-medium">
-                      {question.answer}
+              {state.questions.filter(q => q.answer && q.answer !== '').length > 0 ? (
+                state.questions.filter(q => q.answer && q.answer !== '').map(question => (
+                  <div key={question.id} className="border rounded-lg p-3">
+                    <p className="text-sm font-medium">{question.text}</p>
+                    <div className="flex items-center mt-2">
+                      <div className="bg-tax-lightBlue text-tax-blue px-3 py-1 rounded-full text-xs font-medium">
+                        {question.answer}
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
-              
-              {state.questions.filter(q => q.answer && q.answer !== '').length === 0 && (
+                ))
+              ) : (
                 <p className="text-gray-500 text-sm">No questions answered</p>
               )}
             </div>
@@ -272,13 +287,13 @@ const Summary: React.FC = () => {
         </AnimatedCard>
         
         <div className="mt-8 flex justify-center">
-          <button className="btn-primary px-8 py-3 text-lg flex items-center gap-2">
+          <button className="btn-primary px-8 py-3 text-lg flex items-center gap-2 bg-tax-green hover:bg-tax-green/90 transform hover:scale-105 transition-all">
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-send"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
             Submit to Tax Professional
           </button>
         </div>
         
-        <div className="text-center text-sm text-gray-500 mt-4">
+        <div className="text-center text-sm text-gray-500 mt-4 mb-8">
           Your tax information will be securely shared with your tax professional
         </div>
       </div>
