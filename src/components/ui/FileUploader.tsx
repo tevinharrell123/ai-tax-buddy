@@ -1,6 +1,5 @@
-
 import React, { useState, useRef } from 'react';
-import { Upload, File, X, Check, FileText, CreditCard, FileImage, FileCog } from 'lucide-react';
+import { Upload, File, X, Check, FileText, CreditCard } from 'lucide-react';
 import { useTaxOrganizer } from '../../context/TaxOrganizerContext';
 import { supabase } from '@/integrations/supabase/client';
 import { v4 as uuidv4 } from 'uuid';
@@ -30,22 +29,6 @@ const FileUploader: React.FC = () => {
       icon: <FileText className="text-tax-blue" size={24} />,
       color: "bg-tax-lightBlue border-tax-blue/30",
       activeColor: "bg-tax-blue text-white"
-    },
-    { 
-      id: "receipts", 
-      name: "Receipts", 
-      description: "Business expenses, donations, etc.", 
-      icon: <FileImage className="text-tax-green" size={24} />,
-      color: "bg-tax-lightGreen border-tax-green/30", 
-      activeColor: "bg-tax-green text-white"
-    },
-    { 
-      id: "other", 
-      name: "Other Documents", 
-      description: "Any other relevant files", 
-      icon: <FileCog className="text-amber-500" size={24} />,
-      color: "bg-yellow-50 border-amber-200", 
-      activeColor: "bg-amber-500 text-white"
     }
   ];
 
@@ -273,7 +256,7 @@ const FileUploader: React.FC = () => {
   return (
     <div className="w-full space-y-6">
       <Tabs defaultValue="identification" onValueChange={setActiveCategory} className="w-full">
-        <TabsList className="w-full grid grid-cols-4 mb-6">
+        <TabsList className="w-full grid grid-cols-2 mb-6">
           {documentCategories.map(category => (
             <TabsTrigger 
               key={category.id} 

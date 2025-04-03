@@ -123,7 +123,7 @@ const Welcome: React.FC = () => {
       showBackButton={false}
       disableNext={state.documents.length === 0 || loading}
       onNext={processDocuments}
-      nextButtonText="SmartScan"
+      nextButtonText="Next"
     >
       <div className="relative max-w-4xl mx-auto">
         <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 via-blue-300/5 to-transparent rounded-3xl blur-3xl -z-10"></div>
