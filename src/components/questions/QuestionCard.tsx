@@ -1,10 +1,11 @@
 
 import React from 'react';
-import { Check, AlertCircle, Upload } from 'lucide-react';
+import { Check, AlertCircle, Upload, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import FollowUpQuestions from '@/components/ui/FollowUpQuestions';
 import { Question } from '@/context/TaxOrganizerContext';
 import AnimatedCard from '@/components/ui/AnimatedCard';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface MissingDocument {
   name: string;
@@ -34,6 +35,7 @@ interface QuestionCardProps {
   parentAnswers: Map<string, string>;
   currentAnswer: string | null | undefined;
   onUploadMissingDocument: () => void;
+  isLoading?: boolean;
 }
 
 const QuestionCard: React.FC<QuestionCardProps> = ({
@@ -44,7 +46,8 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
   followUpQuestions,
   parentAnswers,
   currentAnswer,
-  onUploadMissingDocument
+  onUploadMissingDocument,
+  isLoading = false
 }) => {
   // Create a proper compatibility layer that ensures all required fields for Question[] are present
   const convertToQuestion = (q: CustomQuestion): Question => {
@@ -66,6 +69,26 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
   };
 
   const convertedFollowUps: Question[] = followUpQuestions?.map(convertToQuestion) || [];
+
+  if (isLoading) {
+    return (
+      <AnimatedCard className="min-h-[300px] flex flex-col">
+        <div className="flex-1">
+          <Skeleton className="h-4 w-24 mb-2" />
+          <Skeleton className="h-6 w-full mb-6" />
+          
+          <div className="space-y-3 mb-6">
+            <Skeleton className="h-14 w-full" />
+            <Skeleton className="h-14 w-full" />
+            <Skeleton className="h-14 w-full" />
+          </div>
+          <div className="flex items-center justify-center">
+            <Loader2 className="h-8 w-8 text-tax-blue animate-spin" />
+          </div>
+        </div>
+      </AnimatedCard>
+    );
+  }
 
   return (
     <AnimatedCard key={question.id} className="min-h-[300px] flex flex-col">
