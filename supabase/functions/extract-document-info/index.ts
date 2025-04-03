@@ -20,6 +20,21 @@ serve(async (req) => {
     const { documents } = await req.json();
     console.log(`Processing ${documents.length} documents`);
     
+    // Track if we have a 1040 form in the documents
+    let has1040 = false;
+    let hasID = false;
+    
+    // Check for 1040 and ID documents
+    for (const doc of documents) {
+      const docName = doc.name.toLowerCase();
+      if (docName.includes('1040') || docName.includes('tax')) {
+        has1040 = true;
+      }
+      if (docName.includes('license') || docName.includes('id') || docName.includes('passport')) {
+        hasID = true;
+      }
+    }
+    
     // Prepare extractedFields array
     const extractedFields = [];
     
@@ -72,17 +87,35 @@ serve(async (req) => {
       try {
         // Attempt to parse JSON response
         const extracted = JSON.parse(extractedText);
-        const parsedFields = parseExtractedData(doc, extracted);
+        // Add metadata about document type for source tracking
+        const docMetadata = {
+          is1040: doc.name.toLowerCase().includes('1040') || doc.name.toLowerCase().includes('tax'),
+          isIDDocument: doc.name.toLowerCase().includes('license') || 
+                      doc.name.toLowerCase().includes('id') || 
+                      doc.name.toLowerCase().includes('passport'),
+          docName: doc.name
+        };
+        const parsedFields = parseExtractedData(doc, extracted, docMetadata, has1040);
         extractedFields.push(...parsedFields);
       } catch (error) {
         console.error("JSON parsing error:", error);
         // Fallback to text-based extraction if JSON parsing fails
-        const parsedFields = parseDocumentFields(doc, extractedText);
+        const docMetadata = {
+          is1040: doc.name.toLowerCase().includes('1040') || doc.name.toLowerCase().includes('tax'),
+          isIDDocument: doc.name.toLowerCase().includes('license') || 
+                      doc.name.toLowerCase().includes('id') || 
+                      doc.name.toLowerCase().includes('passport'),
+          docName: doc.name
+        };
+        const parsedFields = parseDocumentFields(doc, extractedText, docMetadata, has1040);
         extractedFields.push(...parsedFields);
       }
     }
 
-    return new Response(JSON.stringify({ extractedFields }), {
+    // After processing all documents, deduplicate and prioritize fields
+    const finalFields = deduplicateAndPrioritize(extractedFields, has1040, hasID);
+
+    return new Response(JSON.stringify({ extractedFields: finalFields }), {
       headers: { 
         ...corsHeaders, 
         'Content-Type': 'application/json' 
@@ -101,9 +134,82 @@ serve(async (req) => {
   }
 });
 
+// Function to deduplicate fields and prioritize 1040 data over ID document data
+function deduplicateAndPrioritize(fields, has1040, hasID) {
+  // If we don't have both 1040 and ID documents, no need to deduplicate
+  if (!has1040 || !hasID) return fields;
+  
+  const fieldsByName = {};
+  const results = [];
+  
+  // Group fields by name
+  fields.forEach(field => {
+    // Use combination of name and category as a key to avoid collisions between different categories
+    const key = `${field.name}_${field.category}`;
+    if (!fieldsByName[key]) {
+      fieldsByName[key] = [];
+    }
+    fieldsByName[key].push(field);
+  });
+  
+  // For each group, prioritize data
+  Object.values(fieldsByName).forEach(fieldGroup => {
+    if (fieldGroup.length === 1) {
+      // If there's only one field with this name, just use it
+      results.push(fieldGroup[0]);
+    } else {
+      // If multiple fields with same name, prioritize 1040 over ID
+      const from1040 = fieldGroup.find(f => f.sourceDoc && f.sourceDoc.is1040);
+      const fromID = fieldGroup.find(f => f.sourceDoc && f.sourceDoc.isIDDocument);
+      
+      // If we have 1040 data, use that
+      if (from1040) {
+        results.push(from1040);
+      } 
+      // Otherwise use ID data if available
+      else if (fromID) {
+        results.push(fromID);
+      } 
+      // Otherwise use the first item in the group
+      else {
+        results.push(fieldGroup[0]);
+      }
+    }
+  });
+  
+  return results;
+}
+
 // Create more detailed prompts based on document type
 function createDetailedPrompt(doc) {
   const fileName = doc.name.toLowerCase();
+  
+  // Add specific prompt for 1040 forms
+  if (fileName.includes('1040') || fileName.includes('tax form') || fileName.includes('tax return')) {
+    return `Extract the following from this 1040 tax form document in JSON format:
+    {
+      "taxpayer_name": "Full name of primary taxpayer",
+      "spouse_name": "Full name of spouse if joint return",
+      "address": "Complete street address",
+      "city": "City",
+      "state": "State",
+      "zip": "ZIP code",
+      "ssn": "Last 4 digits of SSN only",
+      "spouse_ssn": "Last 4 digits of spouse SSN if applicable",
+      "filing_status": "Filing status (Single, Married Filing Jointly, etc.)",
+      "wages": "Line 1 wages, salaries, tips amount",
+      "interest_income": "Line 2b taxable interest amount",
+      "dividend_income": "Line 3b ordinary dividends amount",
+      "ira_distributions": "Line 4b taxable IRA distributions",
+      "adjusted_gross_income": "Line 11 adjusted gross income",
+      "standard_deduction": "Standard deduction amount",
+      "itemized_deductions": "Itemized deductions if applicable",
+      "tax_paid": "Total federal income tax paid",
+      "tax_year": "Tax year of the return"
+    }
+    
+    Look carefully at all sections of the 1040 tax form. If any field is not visible or cannot be determined, use null.`;
+  }
   
   if (fileName.includes('w-2') || fileName.includes('w2')) {
     return `Extract the following from this W-2 document in JSON format:
@@ -252,13 +358,21 @@ function createDetailedPrompt(doc) {
 }
 
 // Parse extracted JSON data into structured fields
-function parseExtractedData(doc, extractedData) {
+function parseExtractedData(doc, extractedData, docMetadata, has1040) {
   const fields = [];
   const fileName = doc.name.toLowerCase();
   
+  // Add source document metadata to all fields
+  const addSourceDocMetadata = (field) => {
+    return {
+      ...field,
+      sourceDoc: docMetadata
+    };
+  };
+  
   // Handle W-2 documents
   if (fileName.includes('w-2') || fileName.includes('w2')) {
-    // Personal information
+    // Personal information from W-2
     if (extractedData.employee_name) {
       fields.push({
         id: `${doc.id}_employee_name`,
@@ -266,7 +380,8 @@ function parseExtractedData(doc, extractedData) {
         value: extractedData.employee_name || "Not found",
         isCorrect: null,
         originalValue: JSON.stringify(extractedData),
-        category: "Personal Information"
+        category: "Personal Information",
+        priority: 10
       });
     }
     
@@ -277,7 +392,8 @@ function parseExtractedData(doc, extractedData) {
         value: extractedData.employee_address || "Not found",
         isCorrect: null,
         originalValue: JSON.stringify(extractedData),
-        category: "Personal Identification Information"
+        category: "Personal Identification Information",
+        priority: 10
       });
     }
     
@@ -326,48 +442,183 @@ function parseExtractedData(doc, extractedData) {
     });
   } 
   
+  // Handle 1040 tax form
+  else if (fileName.includes('1040') || fileName.includes('tax form') || fileName.includes('tax return')) {
+    // Personal information from 1040
+    if (extractedData.taxpayer_name) {
+      fields.push({
+        id: `${doc.id}_taxpayer_name`,
+        name: "Full Name",
+        value: extractedData.taxpayer_name || "Not found",
+        isCorrect: null,
+        originalValue: JSON.stringify(extractedData),
+        category: "Personal Information",
+        priority: 10
+      });
+    }
+    
+    if (extractedData.spouse_name) {
+      fields.push({
+        id: `${doc.id}_spouse_name`,
+        name: "Spouse Name",
+        value: extractedData.spouse_name || "Not found",
+        isCorrect: null,
+        originalValue: JSON.stringify(extractedData),
+        category: "Personal Information"
+      });
+    }
+    
+    if (extractedData.address) {
+      fields.push({
+        id: `${doc.id}_address`,
+        name: "Address",
+        value: extractedData.address || "Not found",
+        isCorrect: null,
+        originalValue: JSON.stringify(extractedData),
+        category: "Personal Information",
+        priority: 10
+      });
+    }
+    
+    if (extractedData.city && extractedData.state && extractedData.zip) {
+      fields.push({
+        id: `${doc.id}_city_state_zip`,
+        name: "City, State, ZIP",
+        value: `${extractedData.city || ""}, ${extractedData.state || ""} ${extractedData.zip || ""}`,
+        isCorrect: null,
+        originalValue: JSON.stringify(extractedData),
+        category: "Personal Information",
+        priority: 10
+      });
+    }
+    
+    if (extractedData.ssn) {
+      // Mask SSN
+      let maskedSSN = extractedData.ssn || "Not found";
+      if (maskedSSN !== "Not found" && maskedSSN.length > 4) {
+        const lastFour = maskedSSN.slice(-4);
+        maskedSSN = `xxx-xx-${lastFour}`;
+      }
+      
+      fields.push({
+        id: `${doc.id}_ssn`,
+        name: "SSN",
+        value: maskedSSN,
+        isCorrect: null,
+        originalValue: JSON.stringify(extractedData),
+        category: "Personal Information",
+        priority: 10
+      });
+    }
+    
+    // Income information
+    if (extractedData.wages) {
+      fields.push({
+        id: `${doc.id}_wages`,
+        name: "Wages",
+        value: extractedData.wages || "Not found",
+        isCorrect: null,
+        originalValue: JSON.stringify(extractedData),
+        category: "Income Information"
+      });
+    }
+    
+    if (extractedData.adjusted_gross_income) {
+      fields.push({
+        id: `${doc.id}_agi`,
+        name: "Adjusted Gross Income",
+        value: extractedData.adjusted_gross_income || "Not found",
+        isCorrect: null,
+        originalValue: JSON.stringify(extractedData),
+        category: "Income Information"
+      });
+    }
+    
+    // Tax information
+    if (extractedData.tax_paid || extractedData.federal_tax_paid) {
+      fields.push({
+        id: `${doc.id}_tax_paid`,
+        name: "Federal Tax Paid",
+        value: extractedData.tax_paid || extractedData.federal_tax_paid || "Not found",
+        isCorrect: null,
+        originalValue: JSON.stringify(extractedData),
+        category: "Tax Information"
+      });
+    }
+    
+    if (extractedData.filing_status) {
+      fields.push({
+        id: `${doc.id}_filing_status`,
+        name: "Filing Status",
+        value: extractedData.filing_status || "Not found",
+        isCorrect: null,
+        originalValue: JSON.stringify(extractedData),
+        category: "Personal Information",
+        priority: 10
+      });
+    }
+    
+    if (extractedData.tax_year) {
+      fields.push({
+        id: `${doc.id}_tax_year`,
+        name: "Tax Year",
+        value: extractedData.tax_year || "Not found",
+        isCorrect: null,
+        originalValue: JSON.stringify(extractedData),
+        category: "Tax Information"
+      });
+    }
+  }
+  
   // Handle identification documents
   else if (fileName.includes('license') || fileName.includes('id') || fileName.includes('passport')) {
-    if (extractedData.full_name) {
+    // Only extract personal info from ID if we don't have a 1040
+    if (!has1040 || fileName.includes('passport')) {
+      if (extractedData.full_name) {
+        fields.push({
+          id: `${doc.id}_full_name`,
+          name: "Full Name",
+          value: extractedData.full_name || "Not found",
+          isCorrect: null,
+          originalValue: JSON.stringify(extractedData),
+          category: "Personal Identification Information",
+          priority: 5
+        });
+      }
+      
+      // Combine address components if available
+      let address = "Not found";
+      if (extractedData.address) {
+        address = extractedData.address;
+        if (extractedData.city) address += extractedData.city ? `, ${extractedData.city}` : "";
+        if (extractedData.state) address += extractedData.state ? `, ${extractedData.state}` : "";
+        if (extractedData.zip) address += extractedData.zip ? ` ${extractedData.zip}` : "";
+      }
+      
       fields.push({
-        id: `${doc.id}_full_name`,
-        name: "Full Name",
-        value: extractedData.full_name || "Not found",
+        id: `${doc.id}_address`,
+        name: "Address",
+        value: address,
         isCorrect: null,
         originalValue: JSON.stringify(extractedData),
-        category: "Personal Identification Information"
+        category: "Personal Identification Information",
+        priority: 5
       });
+      
+      if (extractedData.date_of_birth) {
+        fields.push({
+          id: `${doc.id}_dob`,
+          name: "Date of Birth",
+          value: extractedData.date_of_birth || "Not found",
+          isCorrect: null,
+          originalValue: JSON.stringify(extractedData),
+          category: "Personal Identification Information",
+          priority: 5
+        });
+      }
     }
     
-    // Combine address components if available
-    let address = "Not found";
-    if (extractedData.address) {
-      address = extractedData.address;
-      if (extractedData.city) address += extractedData.city ? `, ${extractedData.city}` : "";
-      if (extractedData.state) address += extractedData.state ? `, ${extractedData.state}` : "";
-      if (extractedData.zip) address += extractedData.zip ? ` ${extractedData.zip}` : "";
-    }
-    
-    fields.push({
-      id: `${doc.id}_address`,
-      name: "Address",
-      value: address,
-      isCorrect: null,
-      originalValue: JSON.stringify(extractedData),
-      category: "Personal Identification Information"
-    });
-    
-    if (extractedData.date_of_birth) {
-      fields.push({
-        id: `${doc.id}_dob`,
-        name: "Date of Birth",
-        value: extractedData.date_of_birth || "Not found",
-        isCorrect: null,
-        originalValue: JSON.stringify(extractedData),
-        category: "Personal Identification Information"
-      });
-    }
-    
+    // Always extract ID-specific info regardless of 1040 presence
     // Mask ID numbers
     let idNumber = extractedData.id_number || "Not found";
     if (idNumber && idNumber !== "Not found" && !idNumber.includes("xxx-xx-")) {
@@ -717,11 +968,11 @@ function parseExtractedData(doc, extractedData) {
     });
   }
   
-  return fields;
+  return fields.map(field => addSourceDocMetadata(field));
 }
 
 // Legacy parsing function for backward compatibility
-function parseDocumentFields(doc, extractedText) {
+function parseDocumentFields(doc, extractedText, docMetadata, has1040) {
   const fields = [];
   const fileName = doc.name.toLowerCase();
   
@@ -734,7 +985,7 @@ function parseDocumentFields(doc, extractedText) {
         if (jsonMatch) {
           extractedData = JSON.parse(jsonMatch[0]);
           // If we successfully parsed JSON, use the enhanced parser
-          return parseExtractedData(doc, extractedData);
+          return parseExtractedData(doc, extractedData, docMetadata, has1040);
         }
       }
     } catch (e) {
@@ -930,7 +1181,10 @@ function parseDocumentFields(doc, extractedText) {
     });
   }
   
-  return fields;
+  return fields.map(field => ({
+    ...field,
+    sourceDoc: docMetadata
+  }));
 }
 
 // Helper to extract values from potential JSON or text

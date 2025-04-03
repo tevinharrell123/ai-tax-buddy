@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useTaxOrganizer } from '../context/TaxOrganizerContext';
 import Layout from '../components/layout/Layout';
 import AnimatedCard from '../components/ui/AnimatedCard';
-import { Check, X, Edit2, ChevronLeft, ChevronRight, Save, FileText } from 'lucide-react';
+import { Check, X, Edit2, ChevronLeft, ChevronRight, Save, FileText, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
@@ -26,7 +26,7 @@ const AIReview: React.FC = () => {
   const [editingField, setEditingField] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');
   const [currentSection, setCurrentSection] = useState(0);
-  const [activeTab, setActiveTab] = useState("all");
+  const [activeTab, setActiveTab] = useState("Personal Information");
   const { toast } = useToast();
   const navigate = useNavigate();
   
@@ -49,23 +49,70 @@ const AIReview: React.FC = () => {
     return acc;
   }, {});
   
-  const categories = Object.keys(fieldsByCategory).sort();
+  const categories = Object.keys(fieldsByCategory).sort((a, b) => {
+    if (a === "Personal Information" || a === "Personal Identification Information") return -1;
+    if (b === "Personal Information" || b === "Personal Identification Information") return 1;
+    return a.localeCompare(b);
+  });
   
   const fieldsPerSection = 6;
   let currentFields = [];
   
   if (activeTab === "all") {
-    currentFields = state.extractedFields.slice(
+    const personalInfoFields = state.extractedFields.filter(
+      field => field.category === "Personal Information" || field.category === "Personal Identification Information"
+    );
+    const otherFields = state.extractedFields.filter(
+      field => field.category !== "Personal Information" && field.category !== "Personal Identification Information"
+    );
+    
+    const sortedFields = [...personalInfoFields, ...otherFields];
+    
+    currentFields = sortedFields.slice(
       currentSection * fieldsPerSection, 
       (currentSection + 1) * fieldsPerSection
     );
   } else {
     const categoryFields = fieldsByCategory[activeTab] || [];
+    
+    if (activeTab === "Personal Information" || activeTab === "Personal Identification Information") {
+      prioritizeSourceForPersonalInfo(categoryFields);
+    }
+    
     currentFields = categoryFields.slice(
       currentSection * fieldsPerSection, 
       (currentSection + 1) * fieldsPerSection
     );
   }
+  
+  const prioritizeSourceForPersonalInfo = (fields) => {
+    const fieldsByName = {};
+    fields.forEach(field => {
+      if (!fieldsByName[field.name]) {
+        fieldsByName[field.name] = [];
+      }
+      fieldsByName[field.name].push(field);
+    });
+    
+    Object.keys(fieldsByName).forEach(name => {
+      if (fieldsByName[name].length > 1) {
+        const from1040 = fieldsByName[name].find(f => 
+          f.originalValue && (f.originalValue.includes('1040') || f.originalValue.includes('tax'))
+        );
+        
+        const fromID = fieldsByName[name].find(f => 
+          f.originalValue && (f.originalValue.includes('license') || f.originalValue.includes('id') || 
+          f.originalValue.includes('passport'))
+        );
+        
+        if (from1040 && fromID) {
+          fromID.isDuplicate = true;
+        }
+      }
+    });
+    
+    return fields.filter(field => !field.isDuplicate);
+  };
   
   const totalFields = activeTab === "all" 
     ? state.extractedFields.length 
@@ -182,8 +229,8 @@ const AIReview: React.FC = () => {
           <div className="space-y-6">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center">
-                <FileText className="mr-2 text-tax-blue" size={20} />
-                <h2 className="text-lg font-medium text-gray-800">Document Analysis Results</h2>
+                <User className="mr-2 text-tax-blue" size={20} />
+                <h2 className="text-lg font-medium text-gray-800">Personal Information</h2>
               </div>
               <Button 
                 onClick={verifyAll}
@@ -197,16 +244,24 @@ const AIReview: React.FC = () => {
               <p className="text-sm text-gray-600">
                 Please confirm each field is correct by clicking the checkmark, or edit if needed
               </p>
+              <p className="text-xs text-gray-500 mt-1">
+                <i>Personal information is sourced from your 1040 tax form when available, otherwise from your ID documents</i>
+              </p>
             </div>
             
             <Tabs value={activeTab} onValueChange={changeTab} className="mb-4">
               <TabsList className="w-full mb-4 overflow-x-auto flex-nowrap whitespace-nowrap max-w-[100%]">
-                <TabsTrigger value="all">All Information</TabsTrigger>
-                {categories.map(category => (
+                {categories.filter(cat => cat === "Personal Information" || cat === "Personal Identification Information").map(category => (
                   <TabsTrigger key={category} value={category}>
                     {category}
                   </TabsTrigger>
                 ))}
+                {categories.filter(cat => cat !== "Personal Information" && cat !== "Personal Identification Information").map(category => (
+                  <TabsTrigger key={category} value={category}>
+                    {category}
+                  </TabsTrigger>
+                ))}
+                <TabsTrigger value="all">All Information</TabsTrigger>
               </TabsList>
               
               <TabsContent value={activeTab}>
@@ -264,11 +319,18 @@ const AIReview: React.FC = () => {
                     </TableHeader>
                     <TableBody>
                       {currentFields.map((field) => (
-                        <TableRow key={field.id}>
+                        <TableRow key={field.id} className={field.category === "Personal Information" || field.category === "Personal Identification Information" ? "bg-blue-50" : ""}>
                           <TableCell className="font-medium">
                             <div>
                               <p className="text-sm font-medium text-gray-700">{field.name}</p>
                               <p className="text-xs text-gray-500">{field.category || 'Other'}</p>
+                              {field.originalValue && field.originalValue.includes('1040') && 
+                                <span className="text-xs text-green-600">(From 1040)</span>
+                              }
+                              {field.originalValue && !field.originalValue.includes('1040') && 
+                                (field.originalValue.includes('license') || field.originalValue.includes('id')) && 
+                                <span className="text-xs text-blue-600">(From ID)</span>
+                              }
                             </div>
                           </TableCell>
                           <TableCell>
