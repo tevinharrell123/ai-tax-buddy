@@ -27,6 +27,11 @@ const Categories: React.FC = () => {
   const [showAIModal, setShowAIModal] = useState(false);
   
   useEffect(() => {
+    // Ensure we're on step 3 when this component loads
+    if (state.step !== 3) {
+      dispatch({ type: 'SET_STEP', payload: 3 });
+    }
+
     // Initialize categories if not already done
     if (state.categories.length === 0) {
       // Import all categories first
@@ -151,14 +156,70 @@ const Categories: React.FC = () => {
     setShowAIModal(true);
     setIsProcessing(true);
     
-    // Simulate AI processing documents
+    // Simulate AI processing documents with Claude API
     setTimeout(() => {
+      // Generate some sample extracted fields based on selected categories
+      const extractedFields = [];
+      
+      // Create sample fields based on selected categories
+      state.categories.forEach(category => {
+        if (category.selected) {
+          // Basic fields for each category
+          extractedFields.push({
+            id: `${category.id}-name`,
+            name: `${category.name} Name`,
+            value: `Sample ${category.name}`,
+            isCorrect: null,
+            originalValue: `Sample ${category.name}`,
+            category: category.name
+          });
+          
+          // Additional fields for selected subcategories
+          if (category.subcategories) {
+            category.subcategories.forEach(sub => {
+              if (sub.selected) {
+                extractedFields.push({
+                  id: `${category.id}-${sub.id}`,
+                  name: sub.name,
+                  value: `$${Math.floor(Math.random() * 1000) + 100}`,
+                  isCorrect: null,
+                  originalValue: `$${Math.floor(Math.random() * 1000) + 100}`,
+                  category: category.name
+                });
+              }
+            });
+          }
+        }
+      });
+      
+      // Add some standard tax form fields
+      extractedFields.push({
+        id: "taxpayer-name",
+        name: "Taxpayer Name",
+        value: "John Doe",
+        isCorrect: null,
+        originalValue: "John Doe",
+        category: "Personal Information"
+      });
+      
+      extractedFields.push({
+        id: "ssn",
+        name: "Social Security Number",
+        value: "XXX-XX-1234",
+        isCorrect: null,
+        originalValue: "XXX-XX-1234",
+        category: "Personal Information"
+      });
+      
+      // Save the extracted fields to the state
+      dispatch({ type: 'SET_EXTRACTED_FIELDS', payload: extractedFields });
+      
       setIsProcessing(false);
       setShowAIModal(false);
       
-      // Navigate to review page
+      // Navigate to review page (step 4)
       navigate('/review');
-    }, 3000);
+    }, 3000); // Simulate API call taking 3 seconds
   };
   
   return (

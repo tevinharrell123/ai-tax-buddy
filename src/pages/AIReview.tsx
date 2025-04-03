@@ -31,10 +31,10 @@ const AIReview: React.FC = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   
-  // Ensure we're on step 2 when this component loads
+  // Ensure we're on step 4 when this component loads (previously was step 2)
   useEffect(() => {
-    if (state.step !== 2) {
-      dispatch({ type: 'SET_STEP', payload: 2 });
+    if (state.step !== 4) {
+      dispatch({ type: 'SET_STEP', payload: 4 });
     }
   }, []);
   
@@ -153,15 +153,15 @@ const AIReview: React.FC = () => {
   const handleNextStep = () => {
     if (isReviewComplete) {
       // Mark this step as completed
-      dispatch({ type: 'MARK_STEP_COMPLETED', payload: 2 });
-      // Skip step 3 and go directly to step 4
-      dispatch({ type: 'SET_STEP', payload: 4 });
-      // Navigate directly to the categories page
-      navigate('/categories');
+      dispatch({ type: 'MARK_STEP_COMPLETED', payload: 4 }); // Update to step 4
+      // Go directly to step 5 (Questions)
+      dispatch({ type: 'SET_STEP', payload: 5 });
+      // Navigate to the questions page
+      navigate('/questions');
       
       toast({
         title: "Review Complete!",
-        description: "Moving to tax categories",
+        description: "Moving to tax questions",
         variant: "success",
       });
     }
